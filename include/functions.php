@@ -55,7 +55,7 @@
 	define('REPLY_TO', 'Your Name <your@email.com>');
 	define('FROM', 'Your Name <your@email.com>');
 
-	define('TEMPLATE_DEFAULT', 'default');
+	define('TEMPLATE_DEFAULT', 'default.txt');
 	define('TEMPLATE_DIR', 'templates/');
 
 	# verbosity
