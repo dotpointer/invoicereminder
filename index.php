@@ -2,8 +2,12 @@
 	# changelog
 	# 2017-02-14 17:31:52 - initial version
 	# 2017-02-17 00:54:23 - updating
+	# 2017-02-17 01:20:24 - bugfix working dir
 
 	require_once('include/functions.php');
+
+	# change dir to the same as the script
+	chdir(dirname(__FILE__));
 
 	$opts = getopt('a:dhv:', array('action:', 'dryrun', 'help', 'verbose:'));
 

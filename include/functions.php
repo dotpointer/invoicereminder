@@ -3,6 +3,7 @@
 	# changelog
 	# 2017-02-14 17:57:26 - initial version
 	# 2017-02-17 00:54:02 - updating
+	# 2017-02-17 01:20:43 - bugfix working dir
 
 	/*
 	CREATE TABLE invoicenagger_debtors(
