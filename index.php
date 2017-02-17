@@ -5,7 +5,7 @@
 
 	require_once('include/functions.php');
 
-	$opts = getopt('a:dv:', array('action:', 'dryrun', 'verbose:'));
+	$opts = getopt('a:dhv:', array('action:', 'dryrun', 'help', 'verbose:'));
 
 	$action = false;
 
