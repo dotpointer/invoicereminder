@@ -1,251 +1,178 @@
 <?php
 	# changelog
-	# 2017-02-14 17:31:52 - initial version
-	# 2017-02-17 00:54:23 - updating
-	# 2017-02-17 01:20:24 - bugfix working dir
+	# 2017-02-17 19:20:53 - initial version
 
 	require_once('include/functions.php');
 
-	# change dir to the same as the script
-	chdir(dirname(__FILE__));
+	# parameters
+	$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : false;
+	$address = isset($_REQUEST['address']) ? $_REQUEST['address'] : false;
+	$amount = isset($_REQUEST['amount']) ? $_REQUEST['amount'] : false;
+	$city = isset($_REQUEST['city']) ? $_REQUEST['city'] : false;
+	$collectioncost = isset($_REQUEST['collectioncost']) ? $_REQUEST['collectioncost'] : false;
+	$day_of_month = isset($_REQUEST['day_of_month']) ? $_REQUEST['day_of_month'] : false;
+	$duedate = isset($_REQUEST['duedate']) ? $_REQUEST['duedate'] : false;
+	$email_bcc = isset($_REQUEST['email_bcc']) ? $_REQUEST['email_bcc'] : false;
+	$email = isset($_REQUEST['email']) ? $_REQUEST['email'] : false;
+	$id_debtors = isset($_REQUEST['id_debtors']) ? $_REQUEST['id_debtors'] : false;
+	$invoicedate = isset($_REQUEST['invoicedate']) ? $_REQUEST['invoicedate'] : false;
+	$invoicenumber = isset($_REQUEST['invoicenumber']) ? $_REQUEST['invoicenumber'] : false;
+	$last_reminder = isset($_REQUEST['last_reminder']) ? $_REQUEST['last_reminder'] : false;
+	$name = isset($_REQUEST['name']) ? $_REQUEST['name'] : false;
+	$orgno = isset($_REQUEST['orgno']) ? $_REQUEST['orgno'] : false;
+	$percentage = isset($_REQUEST['percentage']) ? $_REQUEST['percentage'] : false;
+	$remindercost = isset($_REQUEST['remindercost']) ? $_REQUEST['remindercost'] : false;
+	$reminder_days = isset($_REQUEST['reminder_days']) ? $_REQUEST['reminder_days'] : false;
+	$status = isset($_REQUEST['status']) ? $_REQUEST['status'] : false;
+	$template = isset($_REQUEST['template']) ? $_REQUEST['template'] : false;
+	$view = isset($_REQUEST['view']) ? $_REQUEST['view'] : false;
+	$zipcode = isset($_REQUEST['zipcode']) ? $_REQUEST['zipcode'] : false;
 
-	$opts = getopt('a:dhv:', array('action:', 'dryrun', 'help', 'verbose:'));
+	switch ($action) {
+		case 'insert_update_debtor':
 
-	$action = false;
+			$iu = array(
+				'address' => $address,
+				'amount' => $amount,
+				'city' => $city,
+				'collectioncost' => $collectioncost,
+				'day_of_month' => $day_of_month,
+				'duedate' =>  $duedate,
+				'email' => $email,
+				'email_bcc' => $email_bcc,
+				'invoicedate' => $invoicedate,
+				'invoicenumber' => $invoicenumber,
+				'last_reminder' => $last_reminder,
+				'name' => $name,
+				'orgno' => $orgno,
+				'percentage' => $percentage,
+				'remindercost' => $remindercost,
+				'reminder_days' => $reminder_days,
+				'status' => $status,
+				'template' => $template,
+				'updated' => date('Y-m-d H:i:s'),
+				'zipcode' => $zipcode
+			);
 
-	# default config
-	$config = array(
-		'main' => array(
-			'verbose' => VERBOSE_ERROR,
-			'loglevel' => VERBOSE_INFO,
-			'dryrun' => false
-		)
-	);
+			# new debtor
+			if (!$id_debtors) {
 
-	$config_opt = $config;
+				$iu['created'] = date('Y-m-d H:i:s');
+				$iu = dbpia($link, $iu);
+				$sql = '
+					INSERT INTO invoicenagger_debtors ('.
+						implode(', ', array_keys($iu)).
+					') VALUES('.
+						implode(', ', $iu).
+					')';
+			# update debtor
+			} else {
+				$iu['created'] = date('Y-m-d H:i:s');
+				$iu = dbpua($link, $iu);
+				$sql = '
+					UPDATE invoicenagger_debtors (
+						'.implode(', ', $iu).'
+					WHERE
+						id="'.dbres($link, $id_debtors).'"
+					';
+			}
 
-	# walk parameters
-	foreach ($opts as $k => $v) {
-		# find out what parameter that is used
-		switch ($k) {
-			case 'a':
-			case 'action':
-				$action = $v;
-				break;
-			case 'd': # only dry-run (do not run command)
-			case 'dryrun':
-				$config_opt['main']['dryrun'] = true;
-				cl($link, VERBOSE_DEBUG, 'Dryrun mode activated');
-				break;
-			case 'h':
-			case 'help':
-?>
-Invoice reminder application
+			die($sql);
 
--a=<action>, --action=<action>
-	To run an action
-	<action>
-		remind
-			To check for and send reminders
-		errorreset
-			To reset all errors on all debtors with status error by setting
-			them back to active. (Does not change inactivated debtors)
-		remindreset
-			To reset all last reminded dates on all active debtors.
-
--d, --dryrun
-	Do not send any mails, for testing purposes.
-
--v[v,vv,vvv], --verbose[v,vv,vvv]
-	To set verbosity
-<?php
-				die(0);
-			case 'v': # be verbose
-			case 'verbose':
-				# determine and set level of verbosity
-				switch ($v) {
-					default: # error
-						$config_opt['main']['verbose'] = VERBOSE_ERROR;
-						break;
-					case 'v': # error, info
-						$config_opt['main']['verbose'] = VERBOSE_INFO;
-						break;
-					case 'vv': # error, info, debug
-						$config_opt['main']['verbose'] = VERBOSE_DEBUG;
-						break;
-					case 'vvv': # error, info, debug, debug deep
-						$config_opt['main']['verbose'] = VERBOSE_DEBUG_DEEP;
-						break;
-				}
-
-				break;
-		}
-		# make sure the config from parameters override all
-		$config = array_merge_recursive_distinct($config, $config_opt);
+			break;
 	}
 
-	# walk actions
-	switch ($action) {
-
-		case 'errorreset': # to reset all errors
-
-			# log it
-			cl(
-				$link,
-				VERBOSE_INFO,
-				'Resetting all errored debtors to active.'
-			);
-
+	# find out what view to prepare
+	switch ($view) {
+		default:
 			$sql = '
-				UPDATE
+				SELECT
+					*
+				FROM
 					invoicenagger_debtors
-				SET
-					status="'.dbres($link, DEBTOR_STATUS_ACTIVE).'"
-				WHERE
-					status="'.dbres($link, DEBTOR_STATUS_ERROR).'"';
-			cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-			$r = db_query($link, $sql);
-			if ($r === false) {
-				cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
-				die(1);
+				';
+			$debtors = db_query($link, $sql);
+			break;
+		case 'edit_debtor':
+
+			# find all template files
+			$templatefiles = scandir(TEMPLATE_DIR);
+
+			# filter so all text files are left
+			$temp = array();
+			foreach ($templatefiles as $templatefile) {
+				if (substr(strtolower($templatefile), -4) !== '.txt') {
+					continue;
+				}
+				$temp[] = $templatefile;
 			}
-			die(0);
+			$templatefiles = $temp;
 
-		case 'remind':
-
-			# log it
-			cl(
-				$link,
-				VERBOSE_DEBUG,
-				'Searching for debtors to remind'
-			);
-
-			# loop while there are debtors
-			do {
-				# get all active debtors with active status and not reminded yet
+			# was there a debtor requested?
+			if ($id_debtors) {
+				# find the debtor
 				$sql = '
 					SELECT
 						*
 					FROM
 						invoicenagger_debtors
 					WHERE
-						status='.dbres($link, DEBTOR_STATUS_ACTIVE).'
-						AND
-						last_reminder <= timestampadd(day, -reminder_days,now())
-						AND (
-							day_of_month = 0
-							OR
-							DAYOFMONTH(NOW()) >= day_of_month
-						)
-					LIMIT 1;
+						id="'.dbres($link, $id_debtors).'"
 					';
-				cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-				$debtor = db_query($link, $sql);
-				if ($debtor === false) {
+				$debtors = db_query($link, $sql);
+				if ($debtors === false) {
 					cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
 					die(1);
 				}
 
-				# no debtor found?
-				if (!count($debtor) || !isset($debtor[0])) {
-
-					# log it
-					cl($link, VERBOSE_DEBUG, 'No more debtors found');
-
-					# get out
-					break;
+				# was there a debtor found?
+				if (count($debtors)) {
+					# then take that
+					$debtor = reset($debtors);
+				} else {
+					$debtor = false;
 				}
 
-				# simplify debtor
-				$debtor = reset($debtor);
+			} else {
+				$debtor = false;
+			}
+			break;
+	}
 
-				# get the template
-				$templatefile = TEMPLATE_DIR.$debtor['template'];
-
-				# log it
-				cl($link, VERBOSE_DEBUG, 'Using template: '.$templatefile);
-
-
-				# no template file, fatal error
-				if (!$templatefile) {
-
-					# disable all debtors with this template
-					disable_debtors_with_template($link, $debtor['template']);
-
-					# log it
-					cl(
-						$link,
-						VERBOSE_ERROR,
-						TEMPLATE_DIR.
-							$debtor['template'].
-							' does not exist'
-					);
-
-					# take next debtor
-					continue;
-				}
-
-				# get template file
-				$template = file_get_contents($templatefile);
-
-				# failed reading template file
-				if ($template === false) {
-
-					# disable all debtors with this template
-					disable_debtors_with_template($link, $debtor['template']);
-
-					# log it
-					cl(
-						$link,
-						VERBOSE_ERROR,
-						TEMPLATE_DIR.
-							$debtor['template'].
-							' is not readable'
-					);
-
-					# take next debtor
-					continue;
-				}
-
-				$template = trim($template);
-
-				# failed reading template file
-				if (!strlen($template)) {
-
-					# disable all debtors with this template
-					disable_debtors_with_template($link, $debtor['template']);
-
-					# log it
-					cl(
-						$link,
-						VERBOSE_ERROR,
-						TEMPLATE_DIR.
-							$debtor['template'].
-							' is empty'
-					);
-
-					# take next debtor
-					continue;
-				}
-
-				# extract subject
-				if (strpos($template, '---') === false) {
-
-					# disable all debtors with this template
-					disable_debtors_with_template($link, $debtor['template']);
-
-					# log it
-					cl(
-						$link,
-						VERBOSE_ERROR,
-						TEMPLATE_DIR.$debtor['template'].
-							' is missing subject/body divider ---'
-					);
-
-					# take next debtor
-					continue;
-				}
-
+?><html>
+<head>
+	<title>Fakturapåminnare</title>
+</head>
+<body>
+	<a href="?view=">Påminnelser</a>
+	<a href="?view=edit_debtor">Ny gäldenär</a>
+<?php
+	# find out what view to display
+	switch ($view) {
+		default:
+?>
+	<h1>Påminnelser</h1>
+	<table border="1">
+		<tr>
+			<th>#</th>
+			<th>Fakt-#</th>
+			<th>Namn</th>
+			<th>Fakt.bel.</th>
+			<th>Inkasso<br>Påminnelse</th>
+			<th>Ränta<br>Upplupet</th>
+			<th>Totalt</th>
+			<th>E-post</th>
+			<th>Förfallodatum</th>
+			<th>Status</th>
+			<th>Sänt</th>
+			<th>Intervall</th>
+			<th>Dag</th>
+			<th>Mall</th>
+			<th>Hantera</th>
+		</tr>
+<?php
+			# walk debtors
+			foreach ($debtors as $debtor) {
 
 				# start date and end date for interest calculation
 				$date1 = new DateTime($debtor['duedate']);
@@ -265,208 +192,153 @@ Invoice reminder application
 				$total += $interest;
 				$total += $debtor['collectioncost'];
 
-				$placeholders_must_exist = array(
-					'$AMOUNT$',
-					'$DUEDATE$',
-					'$INVOICEDATE$',
-					'$INVOICENUMBER$',
-					'$PERCENTAGE$',
-					'$TOTAL$'
-				);
+?>
+		<tr>
+			<td><?php echo $debtor['id']; ?></td>
+			<td><?php echo $debtor['invoicenumber']; ?></td>
+			<td>
+				<?php echo $debtor['name']; ?><br>
+				<?php echo $debtor['address']; ?><br>
+				<?php echo $debtor['zipcode']; ?> <?php echo $debtor['city']; ?><br>
+				<?php echo $debtor['orgno']; ?>
+			</td>
+			<td><?php echo number_format($debtor['amount'], 2, ',', ','); ?> kr</td>
+			<td>
+				<?php echo number_format($debtor['collectioncost'], 2, ',', ','); ?> kr
+				<br>
+				<?php echo number_format($debtor['remindercost'], 2, ',', ','); ?> kr
+			</td>
+			<td>
+				<?php echo $debtor['percentage']; ?>%<br>
+				<?php echo number_format($interest, 2, ',', ','); ?> kr
+			</td>
+			<td>
+				<?php echo number_format($total, 2, ',', ',') ?>
+			</td>
+			<td>
+				<?php echo $debtor['email']; ?><br>
+				(<?php echo $debtor['email_bcc']; ?>)
+			</td>
+			<td><?php echo $debtor['duedate']; ?></td>
+			<td><?php echo $debtor['status']; ?></td>
+			<td><?php echo $debtor['mails_sent']; ?> st</td>
+			<td><?php echo $debtor['reminder_days']; ?></td>
+			<td><?php echo $debtor['day_of_month']; ?></td>
+			<td><?php echo $debtor['template']; ?></td>
+			<td>
+				<a href="?view=edit_debtor&amp;id_debtors=<?php echo $debtor['id'] ?>">Redigera</a>
+			</td>
+		</tr>
+<?php
+			} # walk debtors
+?>
+	</table>
+<?php
+			break;
+		case 'edit_debtor':
+?>
+	<h1>Redigera gäldenär</h1>
+	<form action="?" method="post">
+		<fieldset>
 
-				$placeholders = array(
-					'$ADDRESS$' => $debtor['address'],
-					'$AMOUNT$' => number_format($debtor['amount'], 2, ',',','),
-					'$CITY$' => $debtor['city'],
-					'$COLLECTIONCOST$' => number_format(
-						$debtor['collectioncost'], 2
-					),
-					'$DUEDATE$' => $debtor['duedate'],
-					'$INTERESTDATE$' => date('Y-m-d'),
-					'$INTEREST$' => number_format($interest, 2, ',',','),
-					'$INTERESTRAISE$' => number_format($perday, 2, ',',','),
-					'$INVOICEDATE$' => $debtor['invoicedate'],
-					'$NAME$' => $debtor['name'],
-					'$INVOICENUMBER$' => $debtor['invoicenumber'],
-					'$ORGNO$' => $debtor['orgno'],
-					'$PERCENTAGE$' => number_format(
-						$debtor['percentage'] * 100, 2
-					),
-					'$REMINDERCOST$' => number_format(
-						$debtor['remindercost'], 2
-					),
-					'$TOTAL$' => number_format($total, 2, ',',','),
-					'$ZIPCODE$' => $debtor['zipcode'],
-					'$EMAIL$' => $debtor['email']
-				);
+			<input type="hidden" name="action" value="insert_update_debtor">
 
-				# log it
-				cl($link, VERBOSE_DEBUG, 'Filling template placeholders');
+			<label>#:</label><br>
+			<span class="value"><?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : 'Ny gäldenär' ?></span>
+			<input type="hidden" name="id_debtors" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+			<br>
 
-				# make sure all locations exist
-				foreach ($placeholders as $placeholderk => $placeholderv) {
+			<label>Fakturanummer:</label><br>
+			<input type="text" name="invoicenumber" value="<?php echo is_array($debtor) && isset($debtor['invoicenumber']) ? $debtor['invoicenumber'] : '' ?>">
+			<br>
 
-					# does this placeholder not exist in the template body?
-					if (strpos($template, $placeholderk) === false) {
+			<label>Namn:</label><br>
+			<input type="text" name="name" value="<?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : '' ?>">
+			<br>
 
-						# is it a required value?
-						if (in_array($placeholderk, $placeholders_must_exist)) {
-							# disable this debtor
-							set_debtor_status(
-								$link,
-								$debtor['id'],
-								DEBTOR_STATUS_ERROR
-							);
+			<label>Adress:</label><br>
+			<input type="text" name="address" value="<?php echo is_array($debtor) && isset($debtor['address']) ? $debtor['address'] : '' ?>">
+			<br>
 
-							# log it
-							cl(
-								$link,
-								VERBOSE_ERROR,
-								TEMPLATE_DIR.$debtor['template'].
-									' is missing placeholder '.
-									$placeholderk
-							);
-							# take next debtor
-							continue 2;
-
-						}
-
-						# take next placeholder
-						continue 1;
-					}
-
-					# fill the placeholder
-					$template = str_replace($placeholderk, $placeholderv, $template);
-				}
-
-				# find subject
-				$subject = trim(substr($template, 0, strpos($template, '---')));
-
-				# find body
-				$body = trim(substr($template, strpos($template, '---') + 3));
+			<label>Postnummer:</label><br>
+			<input type="text" name="zipcode" value="<?php echo is_array($debtor) && isset($debtor['zipcode']) ? $debtor['zipcode'] : '' ?>">
+			<br>
 
 
-				# log it
-				cl($link, VERBOSE_INFO, 'Sending mail to: '.$debtor['email']);
+			<label>Postort:</label><br>
+			<input type="text" name="city" value="<?php echo is_array($debtor) && isset($debtor['city']) ? $debtor['city'] : '' ?>">
+			<br>
 
-				# mail is ready, send it
-				#echo 'SUBJECT: '.$subject."\n\n";
-				#echo 'BODY: '."\n".$body."\n\n";
-
-				# to send HTML mail, the Content-type header must be set
-				$headers[] = 'MIME-Version: 1.0';
-				$headers[] = 'Content-type: text/plain; charset=UTF-8';
-
-				# additional headers
-				# $headers[] = 'To: Mary <mary@example.com>';
-				$headers[] = 'From: '.FROM;
-				$headers[] = 'Reply-To: '.REPLY_TO;
-
-				# is there a bcc address supplied
-				if (strlen($debtor['email_bcc'])) {
-					# then add the bcc header
-					$headers[] = 'Bcc: '.$debtor['email_bcc'];
-				}
-
-				cl(
-					$link,
-					VERBOSE_DEBUG,
-					"\n".
-						str_repeat('-', 80)."\n".
-						implode(
-							str_repeat('-', 80)."\n",
-							array(
-								'To: '.$debtor['email']."\n".implode("\n", $headers)."\n",
-								$subject."\n",
-								$body
-							)
-						)."\n".
-						str_repeat('-', 80)."\n"
-				);
+			<label>Organisations-/personnummer:</label><br>
+			<input type="text" name="orgno" value="<?php echo is_array($debtor) && isset($debtor['orgno']) ? $debtor['orgno'] : '' ?>">
+			<br>
 
 
-				# try to send the mail
-				if (!$config_opt['main']['dryrun']) {
-					$mail_sent = mail(
-						$debtor['email'],
-						$subject,
-						$body,
-						implode("\r\n", $headers)
-					);
-				} else {
-					$mail_sent = true;
-				}
+			<label>Fakturabelopp:</label><br>
+			<input type="text" name="amount" value="<?php echo is_array($debtor) && isset($debtor['amount']) ? $debtor['amount'] : '' ?>">
+			<br>
 
-				# did mail fail?
-				if ($mail_sent === false) {
-					# disable this debtor
-					set_debtor_status(
-						$link,
-						$debtor['id'],
-						DEBTOR_STATUS_ERROR
-					);
+			<label>Inkassokostnad:</label><br>
+			<input type="text" name="collectioncost" value="<?php echo is_array($debtor) && isset($debtor['collectioncost']) ? $debtor['collectioncost'] : '' ?>">
+			<br>
 
-					# log it
-					cl(
-						$link,
-						VERBOSE_ERROR,
-						'Failed sending mail to '.
-							$debtor['email'].' (bcc: '.
-							$debtor['email_bcc'].')'
-					);
+			<label>Påminnelseavgift:</label><br>
+			<input type="text" name="remindercost" value="<?php echo is_array($debtor) && isset($debtor['remindercost']) ? $debtor['remindercost'] : '' ?>">
+			<br>
 
-					# take next debtor
-					continue;
-				}
+			<label>Procent:</label><br>
+			<input type="text" name="percentage" value="<?php echo is_array($debtor) && isset($debtor['percentage']) ? $debtor['percentage'] : '' ?>">
+			<br>
 
-				# update last reminder on this debtor
-				$sql = '
-					UPDATE
-						invoicenagger_debtors
-					SET
-						updated="'.dbres($link, date('Y-m-d H:i:s')).'",
-						last_reminder="'.dbres($link, date('Y-m-d H:i:s')).'",
-						mails_sent=mails_sent+1
-					WHERE
-						id="'.dbres($link, $debtor['id']).'"
-					';
-				cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-				$r = db_query($link, $sql);
-				if ($r === false) {
-					cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
-					die(1);
-				}
+			<label>E-post, gäldenär:</label><br>
+			<input type="text" name="email" value="<?php echo is_array($debtor) && isset($debtor['email']) ? $debtor['email'] : '' ?>">
+			<br>
 
-				# log that mail has been sent
-				cl($link, VERBOSE_INFO, $debtor['email']);
+			<label>E-post, dold kopia:</label><br>
+			<input type="text" name="email_bcc" value="<?php echo is_array($debtor) && isset($debtor['email_bcc']) ? $debtor['email_bcc'] : '' ?>">
+			<br>
 
-			} while (true);
+			<label>Fakturadatum:</label><br>
+			<input type="text" name="invoicedate" value="<?php echo is_array($debtor) && isset($debtor['invoicedate']) ? $debtor['invoicedate'] : '' ?>">
+			<br>
 
-			die(0);
+			<label>Förfallodag:</label><br>
+			<input type="text" name="duedate" value="<?php echo is_array($debtor) && isset($debtor['duedate']) ? $debtor['duedate'] : '' ?>">
+			<br>
 
-		case 'remindreset': # to reset last reminded dates on active debtors
+			<label>Dagar mellan påminnelse:</label><br>
+			<input type="number" name="reminder_days" value="<?php echo is_array($debtor) && isset($debtor['reminder_days']) ? $debtor['reminder_days'] : '' ?>">
+			<br>
 
-			# log it
-			cl(
-				$link,
-				VERBOSE_INFO,
-				'Resetting all active debtor reminder dates.'
-			);
+			<label>Dag i månaden tidigast:</label><br>
+			<input type="number" min="1" max="31" name="day_of_month" value="<?php echo is_array($debtor) && isset($debtor['day_of_month']) ? $debtor['day_of_month'] : '' ?>">
+			<br>
 
-			$sql = '
-				UPDATE
-					invoicenagger_debtors
-				SET
-					last_reminder="'.dbres($link, '1970-01-01 00:00:00').'"
-				WHERE
-					status="'.dbres($link, DEBTOR_STATUS_ACTIVE).'"';
-			cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-			$r = db_query($link, $sql);
-			if ($r === false) {
-				cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
-				die(1);
-			}
-			die(0);
+			<label>Mall:</label><br>
+			<select name="template">
+				<?php foreach ($templatefiles as $templatefile) { ?>
+				<option value="<?php echo $templatefile ?>"<?php echo is_array($debtor) && isset($debtor['template']) && $debtor['template'] === $templatefile ? ' selected' : '' ?>><?php echo $templatefile ?></option>
+				<?php } ?>
+			</select>
+			<br>
 
+			<label>Status:</label><br>
+			<select name="status">
+				<option value="<?php echo DEBTOR_STATUS_ACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ACTIVE ? ' selected' : '' ?>>Aktiv</option>
+				<option value="<?php echo DEBTOR_STATUS_INACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_INACTIVE ? ' selected' : '' ?>>Inaktiv</option>
+				<option value="<?php echo DEBTOR_STATUS_ERROR ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ERROR ? ' selected' : '' ?>>Fel</option>
+			</select>
+			<br>
+
+
+			<input type="submit" name="submit_edit_debtor" value="Spara">
+			<br>
+
+		</fieldset>
+	</form>
+<?php
+			break;
 	}
 ?>
+</body>
+</html>
