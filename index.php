@@ -1,6 +1,7 @@
 <?php
 	# changelog
 	# 2017-02-17 19:20:53 - initial version
+	# 2017-02-18 00:04:08 - adding log
 
 	require_once('include/functions.php');
 
@@ -67,19 +68,25 @@
 					')';
 			# update debtor
 			} else {
-				$iu['created'] = date('Y-m-d H:i:s');
 				$iu = dbpua($link, $iu);
 				$sql = '
-					UPDATE invoicenagger_debtors (
+					UPDATE
+						invoicenagger_debtors
+					SET
 						'.implode(', ', $iu).'
 					WHERE
 						id="'.dbres($link, $id_debtors).'"
 					';
 			}
 
-			die($sql);
+			$r = db_query($link, $sql);
+			if ($r === false) {
+				cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+				die(1);
+			}
 
-			break;
+			header('Location: ?view=debtors');
+			die();
 	}
 
 	# find out what view to prepare
@@ -137,15 +144,35 @@
 				$debtor = false;
 			}
 			break;
+		case 'log':
+			$sql = '
+				SELECT
+					*
+				FROM
+					invoicenagger_log
+				'.($id_debtors !== false ? 'WHERE id_debtors="'.dbres($link, $id_debtors).'"' : '').'
+				ORDER BY
+					created DESC
+				LIMIT 25
+				';
+			$log = db_query($link, $sql);
+			if ($log === false) {
+				cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+				die(1);
+			}
+			break;
 	}
 
-?><html>
+?><!DOCTYPE html>
+<html>
 <head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 	<title>Fakturapåminnare</title>
 </head>
 <body>
 	<a href="?view=">Påminnelser</a>
 	<a href="?view=edit_debtor">Ny gäldenär</a>
+	<a href="?view=log">Händelselogg</a>
 <?php
 	# find out what view to display
 	switch ($view) {
@@ -209,24 +236,41 @@
 				<?php echo number_format($debtor['remindercost'], 2, ',', ','); ?> kr
 			</td>
 			<td>
-				<?php echo $debtor['percentage']; ?>%<br>
+				<?php echo $debtor['percentage'] * 100; ?>%<br>
 				<?php echo number_format($interest, 2, ',', ','); ?> kr
 			</td>
 			<td>
-				<?php echo number_format($total, 2, ',', ',') ?>
+				<?php echo number_format($total, 2, ',', ',') ?> kr
 			</td>
 			<td>
 				<?php echo $debtor['email']; ?><br>
 				(<?php echo $debtor['email_bcc']; ?>)
 			</td>
 			<td><?php echo $debtor['duedate']; ?></td>
-			<td><?php echo $debtor['status']; ?></td>
+			<td><?php
+				switch ($debtor['status']) {
+					case DEBTOR_STATUS_ACTIVE:
+						?>Aktiv<?php
+						break;
+					case DEBTOR_STATUS_INACTIVE:
+						?>Inaktiv<?php
+						break;
+					case DEBTOR_STATUS_ERROR:
+						?>Fel<?php
+						break;
+					default:
+						echo $debtor['status'];
+						break;
+				}
+			?></td>
 			<td><?php echo $debtor['mails_sent']; ?> st</td>
 			<td><?php echo $debtor['reminder_days']; ?></td>
 			<td><?php echo $debtor['day_of_month']; ?></td>
 			<td><?php echo $debtor['template']; ?></td>
 			<td>
 				<a href="?view=edit_debtor&amp;id_debtors=<?php echo $debtor['id'] ?>">Redigera</a>
+				<br>
+				<a href="?view=log&amp;id_debtors=<?php echo $debtor['id'] ?>">Logg</a>
 			</td>
 		</tr>
 <?php
@@ -336,6 +380,48 @@
 
 		</fieldset>
 	</form>
+<?php
+			break;
+		case 'log':
+?>
+	<table border="1">
+		<tr>
+			<th>Datum</th>
+			<th>Typ</th>
+			<th>Text</th>
+		</tr>
+<?php
+			foreach ($log as $logmessage) {
+?>
+		<tr>
+			<td><?php echo $logmessage['created'] ?></td>
+			<td><?php
+				switch ($logmessage['type']) {
+					default:
+						echo $logmessage['type'];
+						break;
+					case VERBOSE_OFF:		# no info at all
+						?>Av<?php
+						break;
+					case VERBOSE_ERROR:		# only errors
+						?>Fel<?php
+						break;
+					case VERBOSE_INFO:		# above and things that changes
+						?>Info<?php
+						break;
+					case VERBOSE_DEBUG:		# above and verbose info
+					case VERBOSE_DEBUG_DEEP:
+						?>Debug<?php
+						break;
+
+				}
+			?></td>
+			<td><?php echo $logmessage['message'] ?></td>
+		</tr>
+<?php
+			}
+?>
+	</table>
 <?php
 			break;
 	}

@@ -4,6 +4,7 @@
 	# 2017-02-14 17:57:26 - initial version
 	# 2017-02-17 00:54:02 - updating
 	# 2017-02-17 01:20:43 - bugfix working dir
+	# 2017-02-17 23:49:31 - adding log
 
 	/*
 	CREATE TABLE invoicenagger_debtors(
@@ -35,6 +36,7 @@
 
 	CREATE TABLE invoicenagger_log(
 	id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	id_debtors INT NOT NULL DEFAULT 0,
 	message TEXT NOT NULL,
 	type INT NOT NULL,
 	created DATETIME NOT NULL
@@ -121,6 +123,59 @@
 		return $merged;
 	}
 
+	# debug printing
+	function cl($link, $level, $s, $id_debtors=0) {
+
+		global $config;
+
+
+		# find out level of verbosity
+		switch ($level) {
+			default:
+			case VERBOSE_ERROR:
+				$l = 'E';
+				break;
+			case VERBOSE_INFO:
+				$l = 'I';
+				break;
+			case VERBOSE_DEBUG:
+			case VERBOSE_DEBUG_DEEP:
+				$l = 'D';
+				break;
+
+		}
+
+		# is verbosity on and level is enough?
+		if ($config['main']['verbose'] && $config['main']['verbose'] >= $level) {
+			echo date('Y-m-d H:i:s').' '.$l.' #'.$id_debtors.' '.$s."\n";
+		}
+
+		# is loglevel on and level is enough - the try to append to log
+		if (
+			$config['main']['loglevel'] &&
+			$config['main']['loglevel'] >= $level &&
+			$link
+		) {
+
+			# log the error
+			$iu = dbpia($link, array(
+				'created' => date('Y-m-d H:i:s'),
+				'id_debtors' => $id_debtors,
+				'message' => $s,
+				'type' => $level
+			));
+			$sql = 'INSERT INTO invoicenagger_log ('.implode(',', array_keys($iu)).') VALUES('.implode(',', $iu).')';
+			$r = db_query($link, $sql);
+			if ($r === false) {
+				echo db_error($link);
+				die(1);
+			}
+
+		}
+
+		return true;
+	}
+
 	# to disable all debtors with a certain template
 	function disable_debtors_with_template($link, $template) {
 		# disable this debtor
@@ -158,57 +213,4 @@
 			die(1);
 		}
 	}
-
-	# debug printing
-	function cl($link, $level, $s) {
-
-		global $config;
-
-
-		# find out level of verbosity
-		switch ($level) {
-			default:
-			case VERBOSE_ERROR:
-				$l = 'E';
-				break;
-			case VERBOSE_INFO:
-				$l = 'I';
-				break;
-			case VERBOSE_DEBUG:
-			case VERBOSE_DEBUG_DEEP:
-				$l = 'D';
-				break;
-
-		}
-
-		# is verbosity on and level is enough?
-		if ($config['main']['verbose'] && $config['main']['verbose'] >= $level) {
-			echo date('Y-m-d H:i:s').' '.$l.' '.$s."\n";
-		}
-
-		# is loglevel on and level is enough - the try to append to log
-		if (
-			$config['main']['loglevel'] &&
-			$config['main']['loglevel'] >= $level &&
-			$link
-		) {
-
-			# log the error
-			$iu = dbpia($link, array(
-				'message' => $s,
-				'type' => $level,
-				'created' => date('Y-m-d H:i:s')
-			));
-			$sql = 'INSERT INTO invoicenagger_log ('.implode(',', array_keys($iu)).') VALUES('.implode(',', $iu).')';
-			$r = db_query($link, $sql);
-			if ($r === false) {
-				echo db_error($link);
-				die(1);
-			}
-
-		}
-
-		return true;
-	}
-
 ?>

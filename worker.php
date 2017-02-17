@@ -3,6 +3,7 @@
 	# 2017-02-14 17:31:52 - initial version
 	# 2017-02-17 00:54:23 - updating
 	# 2017-02-17 01:20:24 - bugfix working dir
+	# 2017-02-17 23:57:27 - adding id_debtors to log
 
 	require_once('include/functions.php');
 
@@ -163,7 +164,7 @@ Invoice reminder application
 				$templatefile = TEMPLATE_DIR.$debtor['template'];
 
 				# log it
-				cl($link, VERBOSE_DEBUG, 'Using template: '.$templatefile);
+				cl($link, VERBOSE_DEBUG, 'Using template: '.$templatefile, $debtor['id']);
 
 
 				# no template file, fatal error
@@ -178,7 +179,8 @@ Invoice reminder application
 						VERBOSE_ERROR,
 						TEMPLATE_DIR.
 							$debtor['template'].
-							' does not exist'
+							' does not exist',
+						$debtor['id']
 					);
 
 					# take next debtor
@@ -200,7 +202,8 @@ Invoice reminder application
 						VERBOSE_ERROR,
 						TEMPLATE_DIR.
 							$debtor['template'].
-							' is not readable'
+							' is not readable',
+						$debtor['id']
 					);
 
 					# take next debtor
@@ -221,7 +224,8 @@ Invoice reminder application
 						VERBOSE_ERROR,
 						TEMPLATE_DIR.
 							$debtor['template'].
-							' is empty'
+							' is empty',
+						$debtor['id']
 					);
 
 					# take next debtor
@@ -239,7 +243,8 @@ Invoice reminder application
 						$link,
 						VERBOSE_ERROR,
 						TEMPLATE_DIR.$debtor['template'].
-							' is missing subject/body divider ---'
+							' is missing subject/body divider ---',
+						$debtor['id']
 					);
 
 					# take next debtor
@@ -265,6 +270,7 @@ Invoice reminder application
 				$total += $interest;
 				$total += $debtor['collectioncost'];
 
+				# placeholder that must exist in template
 				$placeholders_must_exist = array(
 					'$AMOUNT$',
 					'$DUEDATE$',
@@ -274,6 +280,7 @@ Invoice reminder application
 					'$TOTAL$'
 				);
 
+				# fill placeholders
 				$placeholders = array(
 					'$ADDRESS$' => $debtor['address'],
 					'$AMOUNT$' => number_format($debtor['amount'], 2, ',',','),
@@ -282,6 +289,7 @@ Invoice reminder application
 						$debtor['collectioncost'], 2
 					),
 					'$DUEDATE$' => $debtor['duedate'],
+					'$EMAIL$' => $debtor['email'],
 					'$INTERESTDATE$' => date('Y-m-d'),
 					'$INTEREST$' => number_format($interest, 2, ',',','),
 					'$INTERESTRAISE$' => number_format($perday, 2, ',',','),
@@ -296,12 +304,11 @@ Invoice reminder application
 						$debtor['remindercost'], 2
 					),
 					'$TOTAL$' => number_format($total, 2, ',',','),
-					'$ZIPCODE$' => $debtor['zipcode'],
-					'$EMAIL$' => $debtor['email']
+					'$ZIPCODE$' => $debtor['zipcode']
 				);
 
 				# log it
-				cl($link, VERBOSE_DEBUG, 'Filling template placeholders');
+				cl($link, VERBOSE_DEBUG, 'Filling template placeholders', $debtor['id']);
 
 				# make sure all locations exist
 				foreach ($placeholders as $placeholderk => $placeholderv) {
@@ -324,7 +331,8 @@ Invoice reminder application
 								VERBOSE_ERROR,
 								TEMPLATE_DIR.$debtor['template'].
 									' is missing placeholder '.
-									$placeholderk
+									$placeholderk,
+								$debtor['id']
 							);
 							# take next debtor
 							continue 2;
@@ -347,11 +355,7 @@ Invoice reminder application
 
 
 				# log it
-				cl($link, VERBOSE_INFO, 'Sending mail to: '.$debtor['email']);
-
-				# mail is ready, send it
-				#echo 'SUBJECT: '.$subject."\n\n";
-				#echo 'BODY: '."\n".$body."\n\n";
+				cl($link, VERBOSE_DEBUG, 'Sending mail to: '.$debtor['email'], $debtor['id']);
 
 				# to send HTML mail, the Content-type header must be set
 				$headers[] = 'MIME-Version: 1.0';
@@ -381,9 +385,9 @@ Invoice reminder application
 								$body
 							)
 						)."\n".
-						str_repeat('-', 80)."\n"
+						str_repeat('-', 80)."\n",
+					$debtor['id']
 				);
-
 
 				# try to send the mail
 				if (!$config_opt['main']['dryrun']) {
@@ -412,7 +416,8 @@ Invoice reminder application
 						VERBOSE_ERROR,
 						'Failed sending mail to '.
 							$debtor['email'].' (bcc: '.
-							$debtor['email_bcc'].')'
+							$debtor['email_bcc'].')',
+						$debtor['id']
 					);
 
 					# take next debtor
@@ -438,7 +443,7 @@ Invoice reminder application
 				}
 
 				# log that mail has been sent
-				cl($link, VERBOSE_INFO, $debtor['email']);
+				cl($link, VERBOSE_INFO, 'Mail sent: '.$debtor['email'], $debtor['id']);
 
 			} while (true);
 
@@ -467,6 +472,5 @@ Invoice reminder application
 				die(1);
 			}
 			die(0);
-
 	}
 ?>
