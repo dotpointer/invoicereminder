@@ -4,6 +4,7 @@
 	# 2017-02-17 00:54:23 - updating
 	# 2017-02-17 01:20:24 - bugfix working dir
 	# 2017-02-17 23:57:27 - adding id_debtors to log
+	# 2017-02-25 21:42:42 - setting mail address to global one
 
 	require_once('include/functions.php');
 
@@ -363,8 +364,8 @@ Invoice reminder application
 
 				# additional headers
 				# $headers[] = 'To: Mary <mary@example.com>';
-				$headers[] = 'From: '.FROM;
-				$headers[] = 'Reply-To: '.REPLY_TO;
+				$headers[] = 'From: '.MAIL_ADDRESS_FROM;
+				# $headers[] = 'Reply-To: '.MAIL_ADDRESS_FROM;
 
 				# is there a bcc address supplied
 				if (strlen($debtor['email_bcc'])) {
