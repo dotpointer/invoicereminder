@@ -2,6 +2,7 @@
 	# changelog
 	# 2017-02-17 19:20:53 - initial version
 	# 2017-02-18 00:04:08 - adding log
+	# 2017-05-02 11:06:36 - bugfix, adding reminder cost to summary
 
 	require_once('include/functions.php');
 
@@ -218,6 +219,7 @@
 				$total = $debtor['amount'];
 				$total += $interest;
 				$total += $debtor['collectioncost'];
+				$total += $debtor['remindercost'];
 
 ?>
 		<tr>

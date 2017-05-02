@@ -5,6 +5,7 @@
 	# 2017-02-17 01:20:24 - bugfix working dir
 	# 2017-02-17 23:57:27 - adding id_debtors to log
 	# 2017-02-25 21:42:42 - setting mail address to global one
+	# 2017-05-02 11:08:25 - bugfix, adding reminder cost
 
 	require_once('include/functions.php');
 
@@ -270,6 +271,7 @@ Invoice reminder application
 				$total = $debtor['amount'];
 				$total += $interest;
 				$total += $debtor['collectioncost'];
+				$total += $debtor['remindercost'];
 
 				# placeholder that must exist in template
 				$placeholders_must_exist = array(
