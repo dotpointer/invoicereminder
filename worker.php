@@ -6,6 +6,7 @@
 	# 2017-02-17 23:57:27 - adding id_debtors to log
 	# 2017-02-25 21:42:42 - setting mail address to global one
 	# 2017-05-02 11:08:25 - bugfix, adding reminder cost
+	# 2017-05-02 11:13:36 - removing invoice number from required values
 
 	require_once('include/functions.php');
 
@@ -278,7 +279,7 @@ Invoice reminder application
 					'$AMOUNT$',
 					'$DUEDATE$',
 					'$INVOICEDATE$',
-					'$INVOICENUMBER$',
+					# '$INVOICENUMBER$',
 					'$PERCENTAGE$',
 					'$TOTAL$'
 				);
