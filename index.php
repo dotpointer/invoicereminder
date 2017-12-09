@@ -3,6 +3,7 @@
 	# 2017-02-17 19:20:53 - initial version
 	# 2017-02-18 00:04:08 - adding log
 	# 2017-05-02 11:06:36 - bugfix, adding reminder cost to summary
+	# 2017-12-09 20:53:00 - adding Riksbanken reference rate
 
 	require_once('include/functions.php');
 
@@ -23,6 +24,9 @@
 	$name = isset($_REQUEST['name']) ? $_REQUEST['name'] : false;
 	$orgno = isset($_REQUEST['orgno']) ? $_REQUEST['orgno'] : false;
 	$percentage = isset($_REQUEST['percentage']) ? $_REQUEST['percentage'] : false;
+
+	$referencerate = isset($_REQUEST['$referencerate']) ? $_REQUEST['$referencerate'] : false;
+
 	$remindercost = isset($_REQUEST['remindercost']) ? $_REQUEST['remindercost'] : false;
 	$reminder_days = isset($_REQUEST['reminder_days']) ? $_REQUEST['reminder_days'] : false;
 	$status = isset($_REQUEST['status']) ? $_REQUEST['status'] : false;
@@ -93,6 +97,18 @@
 	# find out what view to prepare
 	switch ($view) {
 		default:
+
+			# get reference rate, descending
+			$sql = '
+				SELECT
+					*
+				FROM
+					invoicenagger_riksbank_reference_rate
+				ORDER BY updated DESC
+				';
+			$referencerate = db_query($link, $sql);
+
+			# get debtors
 			$sql = '
 				SELECT
 					*
@@ -162,6 +178,15 @@
 				die(1);
 			}
 			break;
+		case 'referencerate':
+			$sql = '
+				SELECT
+					*
+				FROM
+					invoicenagger_riksbank_reference_rate
+				';
+			$referencerate = db_query($link, $sql);
+			break;
 	}
 
 ?><!DOCTYPE html>
@@ -174,6 +199,7 @@
 	<a href="?view=">Påminnelser</a>
 	<a href="?view=edit_debtor">Ny gäldenär</a>
 	<a href="?view=log">Händelselogg</a>
+	<a href="?view=referencerate">Referensränta</a>
 <?php
 	# find out what view to display
 	switch ($view) {
@@ -210,10 +236,36 @@
 				$days_elapsed = $date2->diff($date1)->format("%a");
 
 				# calculate interest for one day
-				$perday = (($debtor['amount']) * $debtor['percentage']) / 365;
+				# $perday = (($debtor['amount']) * $debtor['percentage']) / 365;
 
 				# calculate interest for all days that has elapsed
-				$interest = $perday * $days_elapsed;
+				$interest = 0;
+				for ($i=1; $i <= $days_elapsed; $i++) {
+
+					# make a new date of the duedate
+					$thisdate = new DateTime($debtor['duedate']);
+					# add X days to this date
+					$thisdate->add(new DateInterval('P' . $i . 'D'));
+					# reformat it to Y-m-d
+					$thisdate = $thisdate->format('Y-m-d');
+
+					$refrate = 0;
+					# $refdate = '';
+					# walk rates from top to bottom
+					foreach ($referencerate as $raterow) {
+						# if the current date is bigger or the same, then take this
+						if (strtotime($thisdate) >= strtotime($raterow['updated'])) {
+							# $refdate = $raterow['updated'];
+							$refrate = $raterow['rate'];
+							break;
+						}
+					}
+
+					$interest += (($debtor['amount']) * ($debtor['percentage'] + $refrate)) / 365;
+					# echo 'Ränta för '.$thisdate.' beräknas på '.$refdate.' '.$refrate.' - > '. ($debtor['percentage'] + ($refrate * 0.01))."\n";
+				}
+
+				# $interest = $perday * $days_elapsed;
 
 				# summarize all costs
 				$total = $debtor['amount'];
@@ -425,7 +477,46 @@
 ?>
 	</table>
 <?php
+
 			break;
+		case 'referencerate':
+?>
+	<table border="1">
+		<tr>
+			<th>Datum</th>
+			<th>Ränta</th>
+		</tr>
+<?php
+			foreach ($referencerate as $row) {
+?>
+		<tr>
+			<td><?php echo $row['updated'] ?></td>
+			<td><?php echo $row['rate'] ?></td>
+		</tr>
+<?php
+			}
+?>
+	</table>
+<?php
+/*
+	<h1>Riksbankens referensränta</h1>
+	<form action="?" method="post">
+		<fieldset>
+			<label>Gäller från (YYYY-MM-DD):</label>
+			<input type="text" name="updated">
+			<br>
+
+			<label>Referensränta:</label>
+			<input type="text" name="referencerate">
+			<br>
+
+			<input type="submit" name="submit_edit_debtor" value="Spara">
+			<br>
+		</fieldset>
+	</form>
+*/
+		break;
+
 	}
 ?>
 </body>

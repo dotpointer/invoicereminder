@@ -7,6 +7,7 @@
 	# 2017-02-25 21:42:42 - setting mail address to global one
 	# 2017-05-02 11:08:25 - bugfix, adding reminder cost
 	# 2017-05-02 11:13:36 - removing invoice number from required values
+	# 2017-12-09 20:53:00 - adding Riksbanken reference rate
 
 	require_once('include/functions.php');
 
@@ -56,10 +57,11 @@ Invoice reminder application
 			them back to active. (Does not change inactivated debtors)
 		remindreset
 			To reset all last reminded dates on all active debtors.
-
+		updatereference
+			To update reference table for Riksbankens reference rate.
+			(Needs to be done after 1 of january and after 1 of july)
 -d, --dryrun
 	Do not send any mails, for testing purposes.
-
 -v[v,vv,vvv], --verbose[v,vv,vvv]
 	To set verbosity
 <?php
@@ -117,6 +119,16 @@ Invoice reminder application
 
 		case 'remind':
 
+			# get reference rate, descending
+			$sql = '
+				SELECT
+					*
+				FROM
+					invoicenagger_riksbank_reference_rate
+				ORDER BY updated DESC
+				';
+			$referencerate = db_query($link, $sql);
+
 			# log it
 			cl(
 				$link,
@@ -143,6 +155,7 @@ Invoice reminder application
 						)
 					LIMIT 1;
 					';
+
 				cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
 				$debtor = db_query($link, $sql);
 				if ($debtor === false) {
@@ -266,7 +279,34 @@ Invoice reminder application
 				$perday = (($debtor['amount']) * $debtor['percentage']) / 365;
 
 				# calculate interest for all days that has elapsed
-				$interest = $perday * $days_elapsed;
+				# $interest = $perday * $days_elapsed;
+
+				# calculate interest for all days that has elapsed
+				$interest = 0;
+				for ($i=1; $i <= $days_elapsed; $i++) {
+
+					# make a new date of the duedate
+					$thisdate = new DateTime($debtor['duedate']);
+					# add X days to this date
+					$thisdate->add(new DateInterval('P' . $i . 'D'));
+					# reformat it to Y-m-d
+					$thisdate = $thisdate->format('Y-m-d');
+
+					$refrate = 0;
+					# $refdate = '';
+					# walk rates from top to bottom
+					foreach ($referencerate as $raterow) {
+						# if the current date is bigger or the same, then take this
+						if (strtotime($thisdate) >= strtotime($raterow['updated'])) {
+							# $refdate = $raterow['updated'];
+							$refrate = $raterow['rate'];
+							break;
+						}
+					}
+
+					$interest += (($debtor['amount']) * ($debtor['percentage'] + $refrate)) / 365;
+					# echo 'Ränta för '.$thisdate.' beräknas på '.$refdate.' '.$refrate.' - > '. ($debtor['percentage'] + ($refrate * 0.01))."\n";
+				}
 
 				# summarize all costs
 				$total = $debtor['amount'];
@@ -356,7 +396,6 @@ Invoice reminder application
 
 				# find body
 				$body = trim(substr($template, strpos($template, '---') + 3));
-
 
 				# log it
 				cl($link, VERBOSE_DEBUG, 'Sending mail to: '.$debtor['email'], $debtor['id']);
@@ -476,5 +515,13 @@ Invoice reminder application
 				die(1);
 			}
 			die(0);
+		case 'updatereference':
+			cl(
+				$link,
+				VERBOSE_DEBUG,
+				'Updating reference table for Riksbanken reference rate'
+			);
+			get_reference_rate($link);
+			break;
 	}
 ?>
