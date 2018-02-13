@@ -4,6 +4,7 @@
 	# 2017-02-18 00:04:08 - adding log
 	# 2017-05-02 11:06:36 - bugfix, adding reminder cost to summary
 	# 2017-12-09 20:53:00 - adding Riksbanken reference rate
+	# 2018-02-13 18:37:00 - updating reference rate display
 
 	require_once('include/functions.php');
 
@@ -184,6 +185,8 @@
 					*
 				FROM
 					invoicenagger_riksbank_reference_rate
+				ORDER BY
+					updated DESC
 				';
 			$referencerate = db_query($link, $sql);
 			break;

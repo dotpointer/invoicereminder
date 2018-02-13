@@ -8,6 +8,7 @@
 	# 2017-05-02 11:08:25 - bugfix, adding reminder cost
 	# 2017-05-02 11:13:36 - removing invoice number from required values
 	# 2017-12-09 20:53:00 - adding Riksbanken reference rate
+	# 2018-02-13 18:30:00 - adding clear reference rate action
 
 	require_once('include/functions.php');
 
@@ -522,6 +523,28 @@ Invoice reminder application
 				'Updating reference table for Riksbanken reference rate'
 			);
 			get_reference_rate($link);
+			break;
+		case 'clearreference':
+			$sql = 'SELECT * FROM invoicenagger_riksbank_reference_rate ORDER BY updated DESC,id DESC';
+			$r = db_query($link, $sql);
+			if ($r === false) {
+				cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+				die(1);
+			}
+
+			foreach ($r as $item) {
+				$sql = '
+				DELETE
+				FROM
+					invoicenagger_riksbank_reference_rate
+				WHERE id > '.dbres($link, $item['id']).' AND updated="'.dbres($link, $item['updated']).'" AND CAST(rate AS CHAR) = "'.dbres($link, $item['rate']).'"';
+				echo $sql;
+				$rsub = db_query($link, $sql);
+				if ($rsub === false) {
+					cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+					die(1);
+				}
+			}
 			break;
 	}
 ?>

@@ -6,6 +6,7 @@
 	# 2017-02-17 01:20:43 - bugfix working dir
 	# 2017-02-17 23:49:31 - adding log
 	# 2017-12-09 20:53:00 - adding Riksbanken reference rate
+	# 2018-02-13 18:38:00 - updating Riksbanken reference rate fetcher due to source changes
 
 	/*
 	CREATE TABLE invoicenagger_debtors(
@@ -128,36 +129,64 @@
 
 	function get_reference_rate($link) {
 
-		$contents = file_get_contents('http://www.riksbank.se/sv/Rantor-och-valutakurser/Referensranta-och-tidigare-diskonto-tabell/');
+		# v1 - before 2018-02-13
+		# $contents = file_get_contents('http://www.riksbank.se/sv/Rantor-och-valutakurser/Referensranta-och-tidigare-diskonto-tabell/');
+		$contents = file_get_contents('https://www.riksbank.se/sv/statistik/sok-rantor--valutakurser/referensranta/');
 
+		# debug
+		# file_put_contents('include/ranta.txt', $contents);
 		# $contents = file_get_contents('include/ranta.txt');
+
+		if (!$contents) {
+			echo 'Failed fetching reference rate page.'."\n";
+			cl($link, VERBOSE_ERROR, 'Failed fetching reference rate page.');
+			die(1);
+		}
+
+		# v1
+		#$contents = substr(
+		#	$contents,
+		#	strpos($contents, '<strong>Referensränta</strong>'),
+		#	strpos($contents, '<p class="tableheader" style="text-align: right;"><strong>Diskonto</strong></p>') - strpos($contents, '<strong>Referensränta</strong>')
+		#);
 
 		$contents = substr(
 			$contents,
-			strpos($contents, '<strong>Referensränta</strong>'),
-			strpos($contents, '<p class="tableheader" style="text-align: right;"><strong>Diskonto</strong></p>') - strpos($contents, '<strong>Referensränta</strong>')
+			strpos($contents, '<tr><th scope="col">Datum</th><th scope="col">Referensränta</th></tr>'),
+			strpos($contents, '</table>')
 		);
 
 		if (!strlen($contents)) {
 			echo 'Failed extracting part of reference rate page.'."\n";
+			cl($link, VERBOSE_ERROR, 'Failed extracting part of reference rate page.');
 			die(1);
 		}
 
-		$p = '/<td>(\d+[-]\d{2}[-]\d{2})<\/td>\s*<td align=\"right\" style=\"text-align: right;\">([-]?\d+,\d+)<\/td>/i';
+		# v1
+		# $p = '/<td>(\d+[-]\d{2}[-]\d{2})<\/td>\s*<td align=\"right\" style=\"text-align: right;\">([-]?\d+,\d+)<\/td>/i';
+		$p = '/<tr>\s*<td>\s*(?:&nbsp;)*\s*(\d+[-]\d{2}[-]\d{2})\s*(?:&nbsp;)*\s*<\/td>\s*<td>\s*(?:&nbsp;)*\s*([-]?\d+,\d+)\s*(?:&nbsp;)*\s*<\/td>/i';
+
 		preg_match_all($p, $contents, $matches);
 		foreach (array_reverse($matches[0]) as $k => $unused) {
 			$date = $matches[1][$k];
 			$rate = (float)str_replace(',', '.', $matches[2][$k]) * 0.01;
 
-			$sql = 'SELECT * FROM invoicenagger_riksbank_reference_rate WHERE updated="'.dbres($link, $date).'" AND rate="'.dbres($link, $rate).'"';
+			# debug
+			# echo ($k + 1).': "'.$date.'" "'.$rate.'"'."\n";
+
+			$sql = 'SELECT * FROM invoicenagger_riksbank_reference_rate WHERE updated="'.dbres($link, $date).'" AND CAST(rate AS CHAR) = "'.dbres($link, $rate).'"';
+			# echo $sql."\n";
 			$r = db_query($link, $sql);
 			if ($r === false) {
 				cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
 				die(1);
 			}
 
+			#echo count($r)."\n";
+
 			if (!count($r)) {
 				$sql = 'INSERT INTO invoicenagger_riksbank_reference_rate (updated, rate) VALUES("'.dbres($link, $date).'", "'.dbres($link, $rate).'")'."\n";
+				# echo $sql."\n";
 				$r = db_query($link, $sql);
 				if ($r === false) {
 					cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
@@ -165,6 +194,7 @@
 				}
 			}
 		}
+
 		# return $contents;
 	}
 
