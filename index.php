@@ -5,6 +5,7 @@
 	# 2017-05-02 11:06:36 - bugfix, adding reminder cost to summary
 	# 2017-12-09 20:53:00 - adding Riksbanken reference rate
 	# 2018-02-13 18:37:00 - updating reference rate display
+	# 2018-02-26 12:56:00 - adding total calculation for end of last year
 
 	require_once('include/functions.php');
 
@@ -241,8 +242,14 @@
 				# calculate interest for one day
 				# $perday = (($debtor['amount']) * $debtor['percentage']) / 365;
 
+
+				# get closest new year
+
+
 				# calculate interest for all days that has elapsed
 				$interest = 0;
+				$interest_last_year = 0;
+				$date_last_year_end = date('Y-m-d', strtotime("Last day of December", mktime(0, 0, 0, date('m'), date('d'), date('Y') - 1)));
 				for ($i=1; $i <= $days_elapsed; $i++) {
 
 					# make a new date of the duedate
@@ -264,7 +271,15 @@
 						}
 					}
 
-					$interest += (($debtor['amount']) * ($debtor['percentage'] + $refrate)) / 365;
+					$interest_this_day = (($debtor['amount']) * ($debtor['percentage'] + $refrate)) / 365;
+
+					$interest += $interest_this_day;
+
+					# is this before or up to last years last day?
+					if (strtotime($thisdate) <= strtotime($date_last_year_end)) {
+						$interest_last_year += $interest_this_day;
+					}
+
 					# echo 'Ränta för '.$thisdate.' beräknas på '.$refdate.' '.$refrate.' - > '. ($debtor['percentage'] + ($refrate * 0.01))."\n";
 				}
 
@@ -272,9 +287,13 @@
 
 				# summarize all costs
 				$total = $debtor['amount'];
-				$total += $interest;
 				$total += $debtor['collectioncost'];
 				$total += $debtor['remindercost'];
+
+				$total_last_year_end = $total;
+
+				$total += $interest;
+				$total_last_year_end += $interest_last_year;
 
 ?>
 		<tr>
@@ -298,6 +317,8 @@
 			</td>
 			<td>
 				<?php echo number_format($total, 2, ',', ',') ?> kr
+				<br>
+				(<?php echo $date_last_year_end ?>: <?php echo number_format($total_last_year_end, 2, ',', ',') ?> kr)
 			</td>
 			<td>
 				<?php echo $debtor['email']; ?><br>
