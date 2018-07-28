@@ -10,6 +10,7 @@
   # 2017-12-09 20:53:00 - adding Riksbanken reference rate
   # 2018-02-13 18:30:00 - adding clear reference rate action
   # 2018-07-28 16:13:32 - indentation change, tab to 2 spaces
+  # 2018-07-28 17:02:00 - renaming from invoicenagger to invoicereminder
 
   require_once('include/functions.php');
 
@@ -106,7 +107,7 @@ Invoice reminder application
 
       $sql = '
         UPDATE
-          invoicenagger_debtors
+          invoicereminder_debtors
         SET
           status="'.dbres($link, DEBTOR_STATUS_ACTIVE).'"
         WHERE
@@ -126,7 +127,7 @@ Invoice reminder application
         SELECT
           *
         FROM
-          invoicenagger_riksbank_reference_rate
+          invoicereminder_riksbank_reference_rate
         ORDER BY updated DESC
         ';
       $referencerate = db_query($link, $sql);
@@ -145,7 +146,7 @@ Invoice reminder application
           SELECT
             *
           FROM
-            invoicenagger_debtors
+            invoicereminder_debtors
           WHERE
             status='.dbres($link, DEBTOR_STATUS_ACTIVE).'
             AND
@@ -472,7 +473,7 @@ Invoice reminder application
         # update last reminder on this debtor
         $sql = '
           UPDATE
-            invoicenagger_debtors
+            invoicereminder_debtors
           SET
             updated="'.dbres($link, date('Y-m-d H:i:s')).'",
             last_reminder="'.dbres($link, date('Y-m-d H:i:s')).'",
@@ -505,7 +506,7 @@ Invoice reminder application
 
       $sql = '
         UPDATE
-          invoicenagger_debtors
+          invoicereminder_debtors
         SET
           last_reminder="'.dbres($link, '1970-01-01 00:00:00').'"
         WHERE
@@ -526,7 +527,7 @@ Invoice reminder application
       get_reference_rate($link);
       break;
     case 'clearreference':
-      $sql = 'SELECT * FROM invoicenagger_riksbank_reference_rate ORDER BY updated DESC,id DESC';
+      $sql = 'SELECT * FROM invoicereminder_riksbank_reference_rate ORDER BY updated DESC,id DESC';
       $r = db_query($link, $sql);
       if ($r === false) {
         cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
@@ -537,7 +538,7 @@ Invoice reminder application
         $sql = '
         DELETE
         FROM
-          invoicenagger_riksbank_reference_rate
+          invoicereminder_riksbank_reference_rate
         WHERE id > '.dbres($link, $item['id']).' AND updated="'.dbres($link, $item['updated']).'" AND CAST(rate AS CHAR) = "'.dbres($link, $item['rate']).'"';
         echo $sql;
         $rsub = db_query($link, $sql);

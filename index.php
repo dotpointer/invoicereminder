@@ -8,6 +8,7 @@
   # 2018-02-26 12:56:00 - adding total calculation for end of last year
   # 2018-03-20 20:02:06
   # 2018-07-28 16:13:32 - indentation change, tab to 2 spaces
+  # 2018-07-28 17:01:00 - renaming from invoicenagger to invoicereminder
 
   require_once('include/functions.php');
 
@@ -70,7 +71,7 @@
         $iu['created'] = date('Y-m-d H:i:s');
         $iu = dbpia($link, $iu);
         $sql = '
-          INSERT INTO invoicenagger_debtors ('.
+          INSERT INTO invoicereminder_debtors ('.
             implode(', ', array_keys($iu)).
           ') VALUES('.
             implode(', ', $iu).
@@ -80,7 +81,7 @@
         $iu = dbpua($link, $iu);
         $sql = '
           UPDATE
-            invoicenagger_debtors
+            invoicereminder_debtors
           SET
             '.implode(', ', $iu).'
           WHERE
@@ -107,7 +108,7 @@
         SELECT
           *
         FROM
-          invoicenagger_riksbank_reference_rate
+          invoicereminder_riksbank_reference_rate
         ORDER BY updated DESC
         ';
       $referencerate = db_query($link, $sql);
@@ -117,7 +118,7 @@
         SELECT
           *
         FROM
-          invoicenagger_debtors
+          invoicereminder_debtors
         ';
       $debtors = db_query($link, $sql);
       break;
@@ -143,7 +144,7 @@
           SELECT
             *
           FROM
-            invoicenagger_debtors
+            invoicereminder_debtors
           WHERE
             id="'.dbres($link, $id_debtors).'"
           ';
@@ -170,7 +171,7 @@
         SELECT
           *
         FROM
-          invoicenagger_log
+          invoicereminder_log
         '.($id_debtors !== false ? 'WHERE id_debtors="'.dbres($link, $id_debtors).'"' : '').'
         ORDER BY
           created DESC
@@ -187,7 +188,7 @@
         SELECT
           *
         FROM
-          invoicenagger_riksbank_reference_rate
+          invoicereminder_riksbank_reference_rate
         ORDER BY
           updated DESC
         ';

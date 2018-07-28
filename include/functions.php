@@ -8,9 +8,10 @@
   # 2017-12-09 20:53:00 - adding Riksbanken reference rate
   # 2018-02-13 18:38:00 - updating Riksbanken reference rate fetcher due to source changes
   # 2018-07-28 16:13:32 - indentation change, tab to 2 spaces
+  # 2018-07-28 17:02:00 - renaming from invoicenagger to invoicereminder
 
   /*
-  CREATE TABLE invoicenagger_debtors(
+  CREATE TABLE invoicereminder_debtors(
     id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT NOT NULL,
     invoicenumber INT NOT NULL,
     name TINYTEXT NOT NULL,
@@ -37,7 +38,7 @@
     updated DATETIME NOT NULL
   );
 
-  CREATE TABLE invoicenagger_log(
+  CREATE TABLE invoicereminder_log(
   id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
   id_debtors INT NOT NULL DEFAULT 0,
   message TEXT NOT NULL,
@@ -45,9 +46,11 @@
   created DATETIME NOT NULL
   );
 
-  CREATE TABLE invoicenagger_riksbank_reference_rate (id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT, updated DATE NOT NULL, rate FLOAT NOT NULL);
+  CREATE TABLE invoicereminder_riksbank_reference_rate (id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT, updated DATE NOT NULL, rate FLOAT NOT NULL);
 
   */
+
+  define('SITE_SHORTNAME', 'invoicereminder');
 
   require_once('setup.php');
 
@@ -170,7 +173,7 @@
       # debug
       # echo ($k + 1).': "'.$date.'" "'.$rate.'"'."\n";
 
-      $sql = 'SELECT * FROM invoicenagger_riksbank_reference_rate WHERE updated="'.dbres($link, $date).'" AND CAST(rate AS CHAR) = "'.dbres($link, $rate).'"';
+      $sql = 'SELECT * FROM invoicereminder_riksbank_reference_rate WHERE updated="'.dbres($link, $date).'" AND CAST(rate AS CHAR) = "'.dbres($link, $rate).'"';
       # echo $sql."\n";
       $r = db_query($link, $sql);
       if ($r === false) {
@@ -181,7 +184,7 @@
       #echo count($r)."\n";
 
       if (!count($r)) {
-        $sql = 'INSERT INTO invoicenagger_riksbank_reference_rate (updated, rate) VALUES("'.dbres($link, $date).'", "'.dbres($link, $rate).'")'."\n";
+        $sql = 'INSERT INTO invoicereminder_riksbank_reference_rate (updated, rate) VALUES("'.dbres($link, $date).'", "'.dbres($link, $rate).'")'."\n";
         # echo $sql."\n";
         $r = db_query($link, $sql);
         if ($r === false) {
@@ -234,7 +237,7 @@
         'message' => $s,
         'type' => $level
       ));
-      $sql = 'INSERT INTO invoicenagger_log ('.implode(',', array_keys($iu)).') VALUES('.implode(',', $iu).')';
+      $sql = 'INSERT INTO invoicereminder_log ('.implode(',', array_keys($iu)).') VALUES('.implode(',', $iu).')';
       $r = db_query($link, $sql);
       if ($r === false) {
         echo db_error($link);
@@ -251,7 +254,7 @@
     # disable this debtor
     $sql = '
       UPDATE
-        invoicenagger_debtors
+        invoicereminder_debtors
       SET
         status="'.dbres($link,DEBTOR_STATUS_ERROR).'",
         updated="'.dbres($link, date('Y-m-d H:i:s')).'"
@@ -272,7 +275,7 @@
     # disable this debtor
     $sql = '
       UPDATE
-        invoicenagger_debtors
+        invoicereminder_debtors
       SET
           status="'.dbres($link, $status).'",
           updated="'.dbres($link, date('Y-m-d H:i:s')).'"
