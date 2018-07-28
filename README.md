@@ -1,4 +1,4 @@
-# Invoicereminder
+# Invoice reminder
 
 Reminds of invoice and loan payments.
 
