@@ -1,0 +1,33 @@
+Påminnelse på skuld på obetalt lån, upplupen skuld: $TOTAL$ SEK
+---
+Till gäldenär:
+$NAME$
+$ADDRESS$
+$ZIPCODE$ $CITY$
+$EMAIL$
+
+Detta är en påminnelse på skuld på obetald och förfallet lån ni tagit av mig.
+
+Lånedatum: $INVOICEDATE$
+Senaste inbetalningsdag: $DUEDATE$
+Avgifter för inkasso, indrivning med mera: $COLLECTIONCOST$ SEK
+Upplupen ränta fram till senaste inbetalningsdag: $REMINDERCOST$ SEK
+Upplupen ränta från och med senaste inbetalningsdag till idag: $INTEREST$ SEK ($PERCENTAGE$%)
+Kvarvarande lånebelopp: $AMOUNT$ SEK
+
+Totalt att betala: $TOTAL$ SEK (till och med $INTERESTDATE$)
+
+Notera att räntebeloppet ökar på skulden dagligen.
+Undvik ytterligare ränta genom att betala omedelbart idag.
+
+Betala in totalbeloppet $TOTAL$ på detta bankkonto:
+
+YOUR BANK ACCOUNT NUMBER (där YOUR BANK ACCOUNT CLEARING NUMBER är clearingnummerdelen)
+YOUR BANK NAME
+
+Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: YOUR PHONE NUMBER
+
+Skriv namn som meddelande.
+Skicka om möjligt även ett mail till YOUR@EMAIL.COM när du betalat.
+
+YOUR NAME

@@ -1,0 +1,36 @@
+Påminnelse på inkassokrav obetald faktura, upplupet belopp: $TOTAL$ SEK
+---
+Till gäldenär:
+$NAME$
+$ADDRESS$
+$ZIPCODE$ $CITY$
+$EMAIL$
+
+Vi har noterat att ni har en obetald faktura hos oss som har förfallit och
+gått till inkasso. Detta är en påminnelse på inkassokravet vi sänt ut tidigare.
+Vi uppmanar er nu att omedelbart betala er skuld.
+
+Fakturanummer: $INVOICENUMBER$
+Fakturadatum: $INVOICEDATE$
+Förfallodag: $DUEDATE$
+Kapitalbelopp: $AMOUNT$ SEK
+Påminnelseavgifter: $REMINDERCOST$ SEK
+Inkassokostnad: $COLLECTIONCOST$ SEK
+Total dröjsmålsränta: $INTEREST$ SEK ($PERCENTAGE$%)
+-
+Totalt att betala: $TOTAL$ SEK (till och med $INTERESTDATE$)
+
+Notera att räntebeloppet ökar på skulden dagligen.
+Undvik ytterligare ränta genom att betala omedelbart idag.
+
+Betala in totalbeloppet $TOTAL$ på detta bankkonto:
+
+YOUR BANK ACCOUNT NUMBER (där YOUR BANK ACCOUNT CLEARING NUMBER är clearingnummerdelen)
+YOUR BANK NAME
+
+Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: YOUR PHONE NUMBER
+
+Skriv fakturanummer eller namn som meddelande.
+Skicka om möjligt även ett mail till YOUR@EMAIL.COM när du betalat.
+
+YOUR NAME

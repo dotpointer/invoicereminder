@@ -1,2 +1,4 @@
 .dptools
 include/setup.php
+templates/*
+!templates/example-*

@@ -49,8 +49,7 @@
 
   */
 
-  define('SITE_SHORTNAME', 'invoicenagger');
-  define('DATABASE_NAME', 'invoicenagger');
+  require_once('setup.php');
 
   define('DEBTOR_STATUS_ACTIVE', 1);
   define('DEBTOR_STATUS_ERROR', -1);
@@ -58,9 +57,6 @@
 
   define('LOG_TYPE_ERROR', -1);
   define('LOG_TYPE_MAIL_SENT', 1);
-
-  define('REPLY_TO', 'Your Name <your@email.com>');
-  define('FROM', 'Your Name <your@email.com>');
 
   define('TEMPLATE_DEFAULT', 'default.txt');
   define('TEMPLATE_DIR', 'templates/');
@@ -72,7 +68,6 @@
   define('VERBOSE_DEBUG', 3);		# above and verbose info
   define('VERBOSE_DEBUG_DEEP', 4);
 
-  require_once('config.php');
   require_once('base3.php');
 
   $link = db_connect();
