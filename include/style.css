@@ -1,0 +1,69 @@
+.amount, .percentage {
+    font-family: monospace;
+}
+
+.value {
+    border: 1px solid #808080;
+    font-family: monospace;
+    padding: 2px 5px;
+}
+
+h1 {
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+}
+
+h2 {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+}
+
+p {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+}
+
+pre {
+  border: 1px solid #808080;
+  background-color: #f0f0f0;
+  padding: 5px;
+}
+table {
+    border: 1px solid #000;
+    border-collapse: collapse;
+    min-width: 100%;
+}
+
+table tr {
+  border: 1px solid #000
+}
+
+table tr:nth-child(odd) td {
+    background-color: #dadada;
+}
+
+table tr td {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  padding: 2px 5px;
+}
+
+table tr th {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  padding: 2px 5px;
+  background-color: #000;
+  color: #fff;
+}
+
+ul li {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+}
+
+ul.menu {
+  padding: 0;
+}
+ul.menu li {
+  display: inline-block;
+}
