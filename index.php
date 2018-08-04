@@ -12,8 +12,10 @@
   # 2018-07-30 00:00:00 - adding balance
   # 2018-07-31 00:00:00 - adding balance
   # 2018-08-01 18:43:00 - adding balance
+  # 2018-08-04 13:38:00 - translations
 
   require_once('include/functions.php');
+  start_translations();
 
   # parameters
   $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : false;
@@ -390,39 +392,39 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
   <link rel="stylesheet" href="include/style.css" />
-  <title>Fakturapåminnare</title>
+  <title><?php echo t('Invoice reminder'); ?></title>
 </head>
 <body>
-<h1>Fakturapåminnare</h1>
+<h1><?php echo t('Invoice reminder'); ?></h1>
 <ul class="menu">
-  <li><a href="?view=">Påminnelser</a></li>
-  <li><a href="?view=edit_debtor">Ny gäldenär</a></li>
-  <li><a href="?view=log">Händelselogg</a></li>
-  <li><a href="?view=referencerate">Referensränta</a></li>
+  <li><a href="?view="><?php echo t('Reminders'); ?></a></li>
+  <li><a href="?view=edit_debtor"><?php echo t('New debtor'); ?></a></li>
+  <li><a href="?view=log"><?php echo t('Event log'); ?></a></li>
+  <li><a href="?view=referencerate"><?php echo t('Reference rate'); ?></a></li>
 </ul>
 <?php
   # find out what view to display
   switch ($view) {
     default:
 ?>
-  <h2>Påminnelser</h2>
+  <h2><?php echo t('Reminders'); ?></h2>
   <table border="1">
     <tr>
       <th>#</th>
-      <th>Fakt-#</th>
-      <th>Namn</th>
-      <th>Fakt.bel.</th>
-      <th>Kostnader</th>
-      <th>Ränta (%)<br>Upplupet</th>
-      <th>Totalt</th>
-      <th>E-post</th>
-      <th>Förfallodatum</th>
-      <th>Status</th>
-      <th>Sänt</th>
-      <th>Intervall</th>
-      <th>Dag</th>
-      <th>Mall</th>
-      <th>Hantera</th>
+      <th><?php echo t('Invoice-#'); ?></th>
+      <th><?php echo t('Name'); ?></th>
+      <th><?php echo t('Invoice amount'); ?></th>
+      <th><?php echo t('Costs'); ?></th>
+      <th><?php echo t('Interest'); ?> (%)<br><?php echo t('Accrued'); ?></th>
+      <th><?php echo t('Total'); ?></th>
+      <th><?php echo t('E-mail'); ?></th>
+      <th><?php echo t('Due date'); ?></th>
+      <th><?php echo t('Status'); ?></th>
+      <th><?php echo t('Sent'); ?></th>
+      <th><?php echo t('Interval'); ?></th>
+      <th><?php echo t('Date'); ?></th>
+      <th><?php echo t('Template'); ?></th>
+      <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
       # walk debtors
@@ -472,13 +474,13 @@
       <td><?php
         switch ($debtor['status']) {
           case DEBTOR_STATUS_ACTIVE:
-            ?>Aktiv<?php
+            echo t('Active');
             break;
           case DEBTOR_STATUS_INACTIVE:
-            ?>Inaktiv<?php
+            echo t('Inactive');
             break;
           case DEBTOR_STATUS_ERROR:
-            ?>Fel<?php
+            echo t('Error');
             break;
           default:
             echo $debtor['status'];
@@ -490,13 +492,13 @@
       <td><?php echo $debtor['day_of_month']; ?></td>
       <td><?php echo $debtor['template']; ?></td>
       <td>
-        <a href="?view=edit_debtor&amp;id_debtors=<?php echo $debtor['id'] ?>">Redigera</a>
+        <a href="?view=edit_debtor&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('Edit'); ?></a>
         <br>
-        <a href="?view=log&amp;id_debtors=<?php echo $debtor['id'] ?>">Maillogg</a>
+        <a href="?view=log&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('E-mail log'); ?></a>
         <br>
-        <a href="?view=balance&amp;id_debtors=<?php echo $debtor['id'] ?>">Balans</a>
+        <a href="?view=balance&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('Balance'); ?></a>
         <br>
-        <a href="?view=history&amp;id_debtors=<?php echo $debtor['id'] ?>">Historik</a>
+        <a href="?view=history&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('History'); ?></a>
       </td>
     </tr>
 <?php
@@ -507,23 +509,23 @@
       break;
     case 'balance':
 ?>
-  <h2>Balans</h2>
-  <p>Gäldenär: <?php echo $debtor['name']?> (#<?php echo $debtor['id'] ?>).
+  <h2><?php echo t('Balance'); ?></h2>
+  <p><?php echo t('Debtor'); ?>: <?php echo $debtor['name']?> (#<?php echo $debtor['id'] ?>).
   <p>
-    Denna sida listar införda balansförändringar.
+    <?php echo t('This page shows balance changes.'); ?>
   </p>
   <p>
-    <a href="?view=edit_balance&amp;id_debtors=<?php echo $id_debtors?>">Ny balansrad</a> /
-    <a href="?view=history&amp;id_debtors=<?php echo $id_debtors?>">Skuldhistorik</a>
+    <a href="?view=edit_balance&amp;id_debtors=<?php echo $id_debtors?>"><?php echo t('New row'); ?></a> /
+    <a href="?view=history&amp;id_debtors=<?php echo $id_debtors?>"><?php echo t('Debt history'); ?></a>
   </p>
   <table border="1">
     <tr>
-      <th>Datum</th>
-      <th>Skuldbelopp</th>
-      <th>Kostnad</th>
-      <th>Betalt</th>
-      <th>Meddelande</th>
-      <th>Hantera</th>
+      <th><?php echo t('Date'); ?></th>
+      <th><?php echo t('Debt amount'); ?></th>
+      <th><?php echo t('Cost'); ?></th>
+      <th><?php echo t('Payment'); ?></th>
+      <th><?php echo t('Message'); ?></th>
+      <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
       # walk debtors
@@ -553,32 +555,32 @@
       break;
     case 'history':
 ?>
-  <h2>Skuldhistorik</h2>
-  <p>Gäldenär: <?php echo $debtor['name']?> (#<?php echo $debtor['id'] ?>).
+  <h2><?php echo t('Debt history'); ?></h2>
+  <p><?php echo t('Debtor'); ?>: <?php echo $debtor['name']?> (#<?php echo $debtor['id'] ?>).
   <p>
-    Denna sida listar skuldhistorik.
+    <?php echo t('This page shows debt history.'); ?>
   </p>
   <p>
     Visa:
-    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=1">Förändringar</a>
+    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=1"><?php echo t('Changes'); ?></a>
     /
-    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=0">Allt</a>
+    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=0"><?php echo t('Everything'); ?></a>
     /
-    <a href="?view=balance&amp;id_debtors=<?=$id_debtors?>">Balans</a>
+    <a href="?view=balance&amp;id_debtors=<?=$id_debtors?>"><?php echo t('Balance'); ?></a>
   </p>
   <table border="1">
     <tr>
-      <th>Dagnr</th>
-      <th>Datum</th>
-      <th>Skuldbelopp</th>
-      <th>Upplupen ränta</th>
-      <th>Kostnad</th>
-      <th>Betalningar</th>
-      <th>Ränta (%) (ref.ränta %)</th>
-      <th>Total</th>
-      <th>Meddelande</th>
-      <th>Mail</th>
-      <th>Hantera</th>
+      <th><?php echo t('Day-#'); ?></th>
+      <th><?php echo t('Date'); ?></th>
+      <th><?php echo t('Debt amount'); ?></th>
+      <th><?php echo t('Accrued interest'); ?></th>
+      <th><?php echo t('Cost'); ?></th>
+      <th><?php echo t('Payments'); ?></th>
+      <th><?php echo t('Rate'); ?> (%) (<?php echo t('Reference rate'); ?> %)</th>
+      <th><?php echo t('Total'); ?></th>
+      <th><?php echo t('Message'); ?></th>
+      <th><?php echo t('Mail'); ?></th>
+      <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
       # walk debtors
@@ -676,7 +678,7 @@
       <td><?php echo $row['message'] ?></td>
       <td><?php echo $row['mails_sent'] ?></td>
       <td>
-        <a href="?view=mail&amp;id_debtors=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>">Mail</a>
+        <a href="?view=mail&amp;id_debtors=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
       </td>
     </tr>
 <?php
@@ -687,7 +689,7 @@
       break;
     case 'edit_balance':
 ?>
-  <h2>Redigera balansrad</h2>
+  <h2><?php echo t('Edit balance row'); ?></h2>
   <form action="?" method="post">
     <fieldset>
       <input type="hidden" name="action" value="insert_update_balance">
@@ -698,41 +700,41 @@
       <input type="hidden" name="id_balance" value="<?php echo is_array($balance) && isset($balance['id']) ? $balance['id'] : '' ?>">
       <br>
 
-      <label>Gäldenär:</label><br>
+      <label><?php echo t('Debtor'); ?>:</label><br>
       <span class="value"><?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : 'Ingen' ?> (#<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>)</span>
       <input type="hidden" name="id_debtors" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
       <br>
 
-      <label>Skuldbelopp, förändring:</label><br>
-      <input type="text" name="amount" value="<?php echo is_array($balance) && isset($balance['amount']) ? $balance['amount'] : '' ?>"> (negativt = minskad skuld)
+      <label><?php echo t('Debt amount, change'); ?>:</label><br>
+      <input type="text" name="amount" value="<?php echo is_array($balance) && isset($balance['amount']) ? $balance['amount'] : '' ?>"> (<?php echo t('negative = reduced debt'); ?>)
       <span class="description">
-        Fyll i eventuell förändring i skuldbelopp, positivt belopp.
+        <?php echo t('Fill in eventual change in debt amount, positive amount.'); ?>
       </span>
       <br>
 
-      <label>Kostnad, förändring:</label><br>
+      <label><?php echo t('Cost, change'); ?>:</label><br>
       <input type="text" name="cost" value="<?php echo is_array($balance) && isset($balance['cost']) ? $balance['cost'] : '' ?>">
       <span class="description">
-        Fyll i eventuell förändring i skuldbelopp, positivt belopp.
+        <?php echo t('Fill in eventual change in cost, positive amount.'); ?>
       </span>
       <br>
 
-      <label>Betalning, förändring:</label><br>
+      <label><?php echo t('Payment, change'); ?>:</label><br>
       <input type="text" name="payment" value="<?php echo is_array($balance) && isset($balance['payment']) ? $balance['payment'] : '' ?>">
       <span class="description">
-        Fyll i eventuell betalning, positivt belopp.
+        <?php echo t('Fill in eventual payment, positive amount.'); ?>
       </span>
       <br>
 
-      <label>Förfallodag:</label><br>
+      <label><?php echo t('Due date'); ?>:</label><br>
       <input type="text" name="happened" value="<?php echo is_array($balance) && isset($balance['happened']) ? $balance['happened'] : '' ?>">
       <br>
 
-      <label>Meddelande/förklaring:</label><br>
+      <label><?php echo t('Message/explanation'); ?>:</label><br>
       <input type="text" name="message" value="<?php echo is_array($balance) && isset($balance['message']) ? $balance['message'] : '' ?>">
       <br>
 
-      <input type="submit" name="submit_edit_balance" value="Spara">
+      <input type="submit" name="submit_edit_balance" value="<?php echo t('Save'); ?>">
       <br>
     </fieldset>
   </form>
@@ -740,7 +742,7 @@
       break;
     case 'edit_debtor':
 ?>
-  <h2>Redigera gäldenär</h2>
+  <h2><?php echo t('Edit debtor'); ?></h2>
   <form action="?" method="post">
     <fieldset>
 
@@ -751,74 +753,60 @@
       <input type="hidden" name="id_debtors" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
       <br>
 
-      <label>Fakturanummer:</label><br>
+      <label><?php echo t('Invoice number'); ?>:</label><br>
       <input type="text" name="invoicenumber" value="<?php echo is_array($debtor) && isset($debtor['invoicenumber']) ? $debtor['invoicenumber'] : '' ?>">
       <br>
 
-      <label>Namn:</label><br>
+      <label><?php echo t('Name'); ?>:</label><br>
       <input type="text" name="name" value="<?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : '' ?>">
       <br>
 
-      <label>Adress:</label><br>
+      <label><?php echo t('Address'); ?>:</label><br>
       <input type="text" name="address" value="<?php echo is_array($debtor) && isset($debtor['address']) ? $debtor['address'] : '' ?>">
       <br>
 
-      <label>Postnummer:</label><br>
+      <label><?php echo t('Postal code'); ?>:</label><br>
       <input type="text" name="zipcode" value="<?php echo is_array($debtor) && isset($debtor['zipcode']) ? $debtor['zipcode'] : '' ?>">
       <br>
 
 
-      <label>Postort:</label><br>
+      <label><?php echo t('City'); ?>:</label><br>
       <input type="text" name="city" value="<?php echo is_array($debtor) && isset($debtor['city']) ? $debtor['city'] : '' ?>">
       <br>
 
-      <label>Organisations-/personnummer:</label><br>
+      <label><?php echo t('Organisation-/social security number'); ?>:</label><br>
       <input type="text" name="orgno" value="<?php echo is_array($debtor) && isset($debtor['orgno']) ? $debtor['orgno'] : '' ?>">
       <br>
 
-      <!--
-      <label>Fakturabelopp:</label><br>
-      <input type="text" name="amount" value="<?php echo is_array($debtor) && isset($debtor['amount']) ? $debtor['amount'] : '' ?>">
-      <br>
-
-      <label>Inkassokostnad:</label><br>
-      <input type="text" name="collectioncost" value="<?php echo is_array($debtor) && isset($debtor['collectioncost']) ? $debtor['collectioncost'] : '' ?>">
-      <br>
-
-      <label>Påminnelseavgift:</label><br>
-      <input type="text" name="remindercost" value="<?php echo is_array($debtor) && isset($debtor['remindercost']) ? $debtor['remindercost'] : '' ?>">
-      <br>
-      -->
-
-      <label>Procent:</label><br>
+      <label><?php echo t('Interest percentage'); ?>:</label><br>
       <input type="text" name="percentage" value="<?php echo is_array($debtor) && isset($debtor['percentage']) ? $debtor['percentage'] : '' ?>">
       <br>
 
-      <label>E-post, gäldenär:</label><br>
+      <label><?php echo t('E-mail, debtor'); ?>:</label><br>
       <input type="text" name="email" value="<?php echo is_array($debtor) && isset($debtor['email']) ? $debtor['email'] : '' ?>">
       <br>
 
-      <label>E-post, dold kopia:</label><br>
+      <label><?php echo t('E-mail, hidden carbon copy'); ?>:</label><br>
       <input type="text" name="email_bcc" value="<?php echo is_array($debtor) && isset($debtor['email_bcc']) ? $debtor['email_bcc'] : '' ?>">
       <br>
 
-      <label>Fakturadatum:</label><br>
+      <label><?php echo t('Invoice date'); ?>:</label><br>
       <input type="text" name="invoicedate" value="<?php echo is_array($debtor) && isset($debtor['invoicedate']) ? $debtor['invoicedate'] : '' ?>">
       <br>
 
-      <label>Förfallodag:</label><br>
+      <label><?php echo t('Due date'); ?>:</label><br>
       <input type="text" name="duedate" value="<?php echo is_array($debtor) && isset($debtor['duedate']) ? $debtor['duedate'] : '' ?>">
       <br>
 
-      <label>Dagar mellan påminnelse:</label><br>
+      <label><?php echo t('Days between reminders'); ?>:</label><br>
       <input type="number" name="reminder_days" value="<?php echo is_array($debtor) && isset($debtor['reminder_days']) ? $debtor['reminder_days'] : '' ?>">
       <br>
 
-      <label>Dag i månaden tidigast:</label><br>
+      <label><?php echo t('Day in month, earliest'); ?>:</label><br>
       <input type="number" min="1" max="31" name="day_of_month" value="<?php echo is_array($debtor) && isset($debtor['day_of_month']) ? $debtor['day_of_month'] : '' ?>">
       <br>
 
-      <label>Mall:</label><br>
+      <label><?php echo t('Template'); ?>:</label><br>
       <select name="template">
         <?php foreach ($templatefiles as $templatefile) { ?>
         <option value="<?php echo $templatefile ?>"<?php echo is_array($debtor) && isset($debtor['template']) && $debtor['template'] === $templatefile ? ' selected' : '' ?>><?php echo $templatefile ?></option>
@@ -826,14 +814,14 @@
       </select>
       <br>
 
-      <label>Status:</label><br>
+      <label><?php echo t('Status'); ?>:</label><br>
       <select name="status">
-        <option value="<?php echo DEBTOR_STATUS_ACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ACTIVE ? ' selected' : '' ?>>Aktiv</option>
-        <option value="<?php echo DEBTOR_STATUS_INACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_INACTIVE ? ' selected' : '' ?>>Inaktiv</option>
-        <option value="<?php echo DEBTOR_STATUS_ERROR ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ERROR ? ' selected' : '' ?>>Fel</option>
+        <option value="<?php echo DEBTOR_STATUS_ACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ACTIVE ? ' selected' : '' ?>><?php echo t('Active'); ?></option>
+        <option value="<?php echo DEBTOR_STATUS_INACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_INACTIVE ? ' selected' : '' ?>><?php echo t('Inactive'); ?></option>
+        <option value="<?php echo DEBTOR_STATUS_ERROR ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ERROR ? ' selected' : '' ?>><?php echo t('Error'); ?></option>
       </select>
       <br>
-      <input type="submit" name="submit_edit_debtor" value="Spara">
+      <input type="submit" name="submit_edit_debtor" value="<?php echo t('Save'); ?>">
       <br>
     </fieldset>
   </form>
@@ -841,13 +829,13 @@
       break;
     case 'log':
 ?>
-  <h2>Maillogg</h2>
-  <p>Denna sida visar när mail skickats till mottagare.</p>
+  <h2><?php echo t('E-mail log'); ?></h2>
+  <p><?php echo t('This page shows when e-mails has been sent to recipients.'); ?></p>
   <table border="1">
     <tr>
-      <th>Datum</th>
-      <th>Typ</th>
-      <th>Text</th>
+      <th><?php echo t('Date'); ?></th>
+      <th><?php echo t('Type'); ?></th>
+      <th><?php echo t('Text'); ?></th>
     </tr>
 <?php
       foreach ($log as $logmessage) {
@@ -859,18 +847,18 @@
           default:
             echo $logmessage['type'];
             break;
-          case VERBOSE_OFF:		# no info at all
-            ?>Av<?php
+          case VERBOSE_OFF: # no info at all
+            echo t('Off');
             break;
-          case VERBOSE_ERROR:		# only errors
-            ?>Fel<?php
+          case VERBOSE_ERROR: # only errors
+            echo t('Error');
             break;
-          case VERBOSE_INFO:		# above and things that changes
-            ?>Info<?php
+          case VERBOSE_INFO: # above and things that changes
+            echo t('Debtor');
             break;
-          case VERBOSE_DEBUG:		# above and verbose info
+          case VERBOSE_DEBUG: # above and verbose info
           case VERBOSE_DEBUG_DEEP:
-            ?>Debug<?php
+            echo t('Debug');
             break;
         }
       ?></td>
@@ -885,8 +873,8 @@
     case 'mail':
       $mail = compose_mail($link, $id_debtors);
 ?>
-<h1>Mail</h1>
-<p>Detta är ett mail så som det skulle sett ut om det avsändes <?php echo $dateto?>.</p>
+<h1><?php echo t('E-mail'); ?></h1>
+<p><?php echo t('This page shows how a mail would look like if it was sent on').' '.$dateto; ?>.</p>
 <pre>
 <?php
       echo "\n".
@@ -906,12 +894,12 @@
       break;
     case 'referencerate':
 ?>
-  <h2>Referensränta</h2>
-  <p>Denna sida visar Riksbankens referensränta.</p>
+  <h2><?php echo t('Reference rate'); ?></h2>
+  <p><?php echo t('This page shows the national reference rate.'); ?></p>
   <table border="1">
     <tr>
-      <th>Datum</th>
-      <th>Ränta (%)</th>
+      <th><?php echo t('Date'); ?></th>
+      <th><?php echo t('Interest rate'); ?> (%)</th>
     </tr>
 <?php
       foreach ($referencerate as $row) {
@@ -926,18 +914,18 @@
   </table>
 <?php
 /*
-  <h2>Riksbankens referensränta</h2>
+  <h2><?php echo t('National interest rate'); ?></h2>
   <form action="?" method="post">
     <fieldset>
-      <label>Gäller från (YYYY-MM-DD):</label>
+      <label><?php echo t('Valid from'); ?> (YYYY-MM-DD):</label>
       <input type="text" name="updated">
       <br>
 
-      <label>Referensränta:</label>
+      <label><?php echo t('Reference rate'); ?>:</label>
       <input type="text" name="referencerate">
       <br>
 
-      <input type="submit" name="submit_edit_debtor" value="Spara">
+      <input type="submit" name="submit_edit_debtor" value="<?php echo t('Save'); ?>">
       <br>
     </fieldset>
   </form>
