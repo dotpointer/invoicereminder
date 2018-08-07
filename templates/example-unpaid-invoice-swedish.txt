@@ -8,25 +8,24 @@ gått till inkasso. Detta är en påminnelse på inkassokravet vi sänt ut tidig
 Vi uppmanar er nu att omedelbart betala er skuld.
 
 Fakturanummer: $INVOICE-NUMBER$
-Fakturadatum: $INVOICEDATE$
-Förfallodag: $DUEDATE$
+Fakturadatum: $INVOICE-DATE$
+Förfallodag: $DUE-DATE$
 Kapitalbelopp: $AMOUNT-ACCRUED$ SEK
-Dröjsmålsränta: $INTERESTACCRUED$ SEK ($RATEACCRUED$%)
-Avgifter: $COSTACCRUED$ SEK
+Dröjsmålsränta: $INTEREST-ACCRUED$ SEK ($RATE-ACCRUED$%)
+Avgifter: $COST-ACCRUED$ SEK
 
-Totalt att betala: $TOTAL$ SEK (till och med $INTERESTDATE$)
+Totalt att betala: $TOTAL$ SEK (till och med $INTEREST-DATE$)
 
 Notera att räntebeloppet ökar på skulden dagligen.
 Undvik ytterligare ränta genom att betala omedelbart idag.
 
 Betala in totalbeloppet $TOTAL$ på detta bankkonto:
+$CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$-$CREDITOR-BANK-ACCOUNT-NUMBER$ (där $CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$ är clearingnummerdelen)
+$CREDITOR-BANK-NAME$
 
-YOUR BANK ACCOUNT NUMBER (där YOUR BANK ACCOUNT CLEARING NUMBER är clearingnummerdelen)
-YOUR BANK NAME
-
-Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: YOUR PHONE NUMBER
+Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: $CREDITOR-CELLPHONE-NUMBER$.
 
 Skriv fakturanummer eller namn som meddelande.
-Skicka om möjligt även ett mail till YOUR@EMAIL.COM när du betalat.
+Skicka om möjligt även ett mail till $CREDITOR-EMAIL$ när du betalat.
 
-YOUR NAME
+$CREDITOR-COMPANY-NAME$

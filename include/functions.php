@@ -16,6 +16,7 @@
   # 2018-08-04 13:38:00 - translations
   # 2018-08-06 00:00:00 - adding balance
   # 2018-08-07 19:15:00 - adding balance
+  # 2018-08-08 20:28:00 - adding balance
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
@@ -41,17 +42,17 @@
   define('VERBOSE_DEBUG_DEEP', 4);
 
   $available_properties = array(
-    '$CREDITOR-BANKACCOUNT-CLEARINGNUMBER$',
-    '$CREDITOR-BANKACCOUNT-NUMBER$',
-    '$CREDITOR-BANKNAME$',
-    '$CREDITOR-CELLPHONENUMBER$',
+    '$CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$',
+    '$CREDITOR-BANK-ACCOUNT-NUMBER$',
+    '$CREDITOR-BANK-NAME$',
+    '$CREDITOR-CELLPHONE-NUMBER$',
     '$CREDITOR-CITY$',
-    '$CREDITOR-COMPANYNAME$',
+    '$CREDITOR-COMPANY-NAME$',
     '$CREDITOR-COUNTRY$',
-    '$CREDITOR-POSTALCODE$',
-    '$CREDITOR-EMAIL',
+    '$CREDITOR-EMAIL$',
     '$CREDITOR-NAME$',
-    '$CREDITOR-STREET$'
+    '$CREDITOR-STREET$',
+    '$CREDITOR-ZIP-CODE$'
   );
 
   require_once('base3.php');
@@ -233,6 +234,8 @@
 
   function balance_history($link, $id_debtors, $parameters=false) {
 
+    $send_mail = true;
+
     # get the debtor
     $sql = '
       SELECT
@@ -308,7 +311,6 @@
       $interest_accrued = 0;
       $interest_this_day = 0;
       $last_refrate = false;
-      $owing_accrued = 0;
       $payment_accrued = 0;
 
       # walk the days
@@ -496,14 +498,13 @@
           'interest_this_day' => $interest_this_day,
           'mails_sent' => $mails_sent,
           'message' => implode(' ', $message),
-          'owing_accrued' => $owing_accrued,
           'payment_accrued' => $payment_accrued,
           'payment_paid_this_day' => $payment_paid_this_day,
           'payment_this_day' => $payment_this_day,
           'rate' => $rate,
           'refrate' => $refrate,
           'rate_accrued' => $rate + $refrate,
-          'total' => $amount_accrued + $interest_accrued + $cost_accrued
+          'total' => $amount_accrued + $interest_accrued + $cost_accrued - $payment_accrued
         );
 
         # check if all is paid and at the end of balance
@@ -514,6 +515,7 @@
           strtotime($lastbalancedate) <= strtotime($thisdate)
         ) {
           # then stop
+          $send_mail = false;
           break;
         }
       }
@@ -522,6 +524,7 @@
     return array(
       'history' => $summarization,
       'special' => array(
+        'send_mail' => $send_mail,
         'duedate' => $duedate,
         'date_last_year_end' => $date_last_year_end,
         'total_last_year_end' => $total_last_year_end
@@ -529,7 +532,7 @@
     );
   }
 
-  function compose_mail($link, $id_debtors, $templatefile=false) {
+  function compose_mail($link, $id_debtors, $templatefile=false, $force=false) {
     # get all active debtors with active status and not reminded yet
     $sql = '
       SELECT
@@ -554,6 +557,21 @@
     }
 
     $debtor = $debtors[0];
+
+    # get properties
+    $sql = '
+      SELECT
+        *
+      FROM
+        properties
+      ';
+
+    cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
+    $properties = db_query($link, $sql);
+    if ($properties === false) {
+      cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+      die(1);
+    }
 
     if (!$templatefile) {
       # get the template
@@ -645,13 +663,25 @@
 
     $balance_history = balance_history($link, $debtor['id']);
 
+    if (!$force && !$balance_history['special']['send_mail']) {
+      # log it
+      cl($link, VERBOSE_DEBUG, 'Disabling debtor due to satisfied balance history.', $debtor['id']);
+      # disable this debtor
+      set_debtor_status(
+        $link,
+        $debtor['id'],
+        DEBTOR_STATUS_INACTIVE
+      );
+      return false;
+    }
+
     $lastrow = end($balance_history['history']);
 
     # placeholder that must exist in template
     $placeholders_must_exist = array(
       '$AMOUNT-ACCRUED$',
-      '$DUEDATE$',
-      '$INVOICEDATE$',
+      '$DUE-DATE$',
+      '$INVOICE-DATE$',
       # '$INVOICE-NUMBER$',
       '$PERCENTAGE$',
       '$TOTAL$'
@@ -662,20 +692,25 @@
       '$ADDRESS$' => $debtor['address'],
       '$AMOUNT-ACCRUED$' => money($lastrow['amount_accrued']),
       '$CITY$' => $debtor['city'],
-      '$COSTACCRUED$' => money($lastrow['cost_accrued']),
-      '$DUEDATE$' => $balance_history['special']['duedate'],
+      '$COST-ACCRUED$' => money($lastrow['cost_accrued']),
+      '$DUE-DATE$' => $balance_history['special']['duedate'],
       '$EMAIL$' => $debtor['email'],
-      '$INTERESTACCRUED$' => money($lastrow['interest_accrued']),
-      '$INTERESTDATE$' => date('Y-m-d'),
-      '$INTERESTPERDAY$' => money($lastrow['interest_this_day']),
-      '$INVOICEDATE$' => $debtor['invoicedate'],
+      '$INTEREST-ACCRUED$' => money($lastrow['interest_accrued']),
+      '$INTEREST-DATE$' => date('Y-m-d'),
+      '$INTEREST-PER-DAY$' => money($lastrow['interest_this_day']),
+      '$INVOICE-DATE$' => $debtor['invoicedate'],
       '$INVOICE-NUMBER$' => $debtor['invoicenumber'],
       '$NAME$' => $debtor['name'],
       '$ORGNO$' => $debtor['orgno'],
-      '$RATEACCRUED$' => percentage(($lastrow['rate_accrued']) * 100, 2),
+      '$RATE-ACCRUED$' => percentage(($lastrow['rate_accrued']) * 100, 2),
       '$TOTAL$' => money($lastrow['amount_accrued'] + $lastrow['interest_accrued'] + $lastrow['cost_accrued']),
-      '$ZIPCODE$' => $debtor['zipcode']
+      '$ZIP-CODE$' => $debtor['zipcode']
     );
+
+    # complement with properties from database
+    foreach ($properties as $property) {
+      $placeholders[$property['property']] = $property['value'];
+    }
 
     # log it
     cl($link, VERBOSE_DEBUG, 'Filling template placeholders', $debtor['id']);
@@ -760,7 +795,7 @@
       'templatefile_default' => basename($debtor['template']),
       'to' => $debtor['email'],
       'subject' => $subject,
-      'body' => $body,
+      'body' => $body
     );
   }
 

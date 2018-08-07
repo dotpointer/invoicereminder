@@ -14,6 +14,7 @@
   # 2018-08-01 18:43:00 - adding balance
   # 2018-08-04 13:38:00 - translations
   # 2018-08-07 19:15:00 - adding balance
+  # 2018-08-08 20:31:00 - adding balance
 
   require_once('include/functions.php');
 
@@ -450,6 +451,43 @@
       } else {
         $property = false;
       }
+
+      # find the debtor
+      $sql = '
+        SELECT
+          *
+        FROM
+          properties
+        ';
+      $properties = db_query($link, $sql);
+      if ($properties === false) {
+        cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+        die(1);
+      }
+
+      # walk available properties
+      foreach ($available_properties as $available_property) {
+        $found = false;
+
+        # not editing property or this is not the edited property
+        if ($property === false || $property['property'] !== $available_property) {
+          # walk properties in database
+          foreach ($properties as $property_in_database) {
+            # is the property in database the same as the available property
+            if ($property_in_database['property'] === $available_property) {
+              # mark as found
+              $found = true;
+              break;
+            }
+          }
+        }
+
+        if (!$found) {
+          $tmp[] = $available_property;
+        }
+      }
+      $available_filtered_properties = $tmp;
+
       break;
     case 'history':
 
@@ -520,7 +558,7 @@
       $templates = $tmp;
 
 
-      $mail = compose_mail($link, $id_debtors, $templatefile);
+      $mail = compose_mail($link, $id_debtors, $templatefile, true);
       break;
     case 'referencerate':
       $sql = '
@@ -612,16 +650,16 @@
       }
       echo $b['message'].' '.money($b['cost_this_day']); ?> kr<?php
     }
+    $bend = end($debtor['balance_history']['history']);
 ?>
       </td>
       <td class="percentage">
-        <?php echo $debtor['percentage'] * 100; ?>%<br>
+        <?php echo isset($bend['rate_accrued']) ? $bend['rate_accrued'] * 100 : '?'; ?>%<br>
 <?php
-      $bend = end($debtor['balance_history']['history']);
-      echo money($bend['interest_accrued']); ?> kr
+      echo isset($bend['interest_accrued']) ? money($bend['interest_accrued']) : ''; ?> kr
       </td>
       <td class="amount">
-        <?php echo money($bend['amount_accrued'] + $bend['interest_accrued'] + $bend['cost_accrued']) ?> kr
+        <?php echo isset($bend['amount_accrued'], $bend['interest_accrued'], $bend['cost_accrued']) ? money($bend['amount_accrued'] + $bend['interest_accrued'] + $bend['cost_accrued']) : ''; ?> kr
         <br>
         (<?php echo $debtor['balance_history']['special']['date_last_year_end'] ?>: <?php echo money($debtor['balance_history']['special']['total_last_year_end']) ?> kr)
       </td>
@@ -1011,8 +1049,8 @@
 
       <label><?php echo t('Property'); ?>:</label><br>
       <select name="property">
-        <?php foreach ($available_properties as $key => $propertyname) { ?>
-        <option value="<?php echo $propertyname ?>"<?php echo is_array($property) && isset($property['name']) && $property['name'] === $propertyname ? ' selected' : '' ?>><?php echo $propertyname; ?></option>
+        <?php foreach ($available_filtered_properties as $key => $propertyname) { ?>
+        <option value="<?php echo $propertyname ?>"<?php echo is_array($property) && isset($property['property']) && $property['property'] === $propertyname ? ' selected' : '' ?>><?php echo $propertyname; ?></option>
         <?php } ?>
       </select>
       <br>
@@ -1091,9 +1129,7 @@
       }
 ?>
     </select>
-    <br>
-
-    <input type="submit" name="submit_edit_debtor" value="<?php echo t('Save'); ?>">
+    <input type="submit" value="<?php echo t('Show'); ?>">
     <br>
   </fieldset>
 </form>
