@@ -592,8 +592,7 @@
       }
       $templates = $tmp;
 
-
-      $mail = compose_mail($link, $id_debtors, $templatefile, true);
+      $mail = compose_mail($link, $id_debtors, $templatefile, true, $dateto);
       break;
 
     case 'referencerate':

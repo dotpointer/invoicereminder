@@ -532,7 +532,7 @@
     );
   }
 
-  function compose_mail($link, $id_debtors, $templatefile=false, $force=false) {
+  function compose_mail($link, $id_debtors, $templatefile=false, $force=false, $dateto=false) {
     # get all active debtors with active status and not reminded yet
     $sql = '
       SELECT
@@ -661,7 +661,13 @@
       return false;
     }
 
-    $balance_history = balance_history($link, $debtor['id']);
+    $parameters = array();
+
+    if ($dateto) {
+      $parameters['dateto'] = $dateto;
+    }
+
+    $balance_history = balance_history($link, $debtor['id'], $parameters);
 
     if (!$force && !$balance_history['special']['send_mail']) {
       # log it
@@ -696,7 +702,7 @@
       '$DUE-DATE$' => $balance_history['special']['duedate'],
       '$EMAIL$' => $debtor['email'],
       '$INTEREST-ACCRUED$' => money($lastrow['interest_accrued']),
-      '$INTEREST-DATE$' => date('Y-m-d'),
+      '$INTEREST-DATE$' => $dateto ? $dateto : date('Y-m-d'),
       '$INTEREST-PER-DAY$' => money($lastrow['interest_this_day']),
       '$INVOICE-DATE$' => $debtor['invoicedate'],
       '$INVOICE-NUMBER$' => $debtor['invoicenumber'],
