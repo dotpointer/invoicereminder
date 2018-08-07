@@ -2,18 +2,14 @@ Påminnelse på skuld på obetalt lån, upplupen skuld: $TOTAL$ SEK
 ---
 Till gäldenär:
 $NAME$
-$ADDRESS$
-$ZIPCODE$ $CITY$
-$EMAIL$
 
 Detta är en påminnelse på skuld på obetald och förfallet lån ni tagit av mig.
 
 Lånedatum: $INVOICEDATE$
-Senaste inbetalningsdag: $DUEDATE$
-Avgifter för inkasso, indrivning med mera: $COLLECTIONCOST$ SEK
-Upplupen ränta fram till senaste inbetalningsdag: $REMINDERCOST$ SEK
-Upplupen ränta från och med senaste inbetalningsdag till idag: $INTEREST$ SEK ($PERCENTAGE$%)
-Kvarvarande lånebelopp: $AMOUNT$ SEK
+Förfallodag: $DUEDATE$
+Avgifter: $COSTACCRUED$ SEK
+Upplupen ränta: $INTERESTACCRUED$ SEK
+Kvarvarande lånebelopp: $AMOUNT-ACCRUED$ SEK
 
 Totalt att betala: $TOTAL$ SEK (till och med $INTERESTDATE$)
 

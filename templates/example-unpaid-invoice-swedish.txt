@@ -2,22 +2,18 @@ Påminnelse på inkassokrav obetald faktura, upplupet belopp: $TOTAL$ SEK
 ---
 Till gäldenär:
 $NAME$
-$ADDRESS$
-$ZIPCODE$ $CITY$
-$EMAIL$
 
 Vi har noterat att ni har en obetald faktura hos oss som har förfallit och
 gått till inkasso. Detta är en påminnelse på inkassokravet vi sänt ut tidigare.
 Vi uppmanar er nu att omedelbart betala er skuld.
 
-Fakturanummer: $INVOICENUMBER$
+Fakturanummer: $INVOICE-NUMBER$
 Fakturadatum: $INVOICEDATE$
 Förfallodag: $DUEDATE$
-Kapitalbelopp: $AMOUNT$ SEK
-Påminnelseavgifter: $REMINDERCOST$ SEK
-Inkassokostnad: $COLLECTIONCOST$ SEK
-Total dröjsmålsränta: $INTEREST$ SEK ($PERCENTAGE$%)
--
+Kapitalbelopp: $AMOUNT-ACCRUED$ SEK
+Dröjsmålsränta: $INTERESTACCRUED$ SEK ($RATEACCRUED$%)
+Avgifter: $COSTACCRUED$ SEK
+
 Totalt att betala: $TOTAL$ SEK (till och med $INTERESTDATE$)
 
 Notera att räntebeloppet ökar på skulden dagligen.

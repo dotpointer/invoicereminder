@@ -14,10 +14,14 @@
   # 2018-07-31 00:00:00 - adding balance
   # 2018-08-01 18:43:00 - adding balance
   # 2018-08-04 13:38:00 - translations
+  # 2018-08-06 00:00:00 - adding balance
+  # 2018-08-07 19:15:00 - adding balance
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
   require_once('setup.php');
+  define('BALANCE_TYPE_NORMAL', 0);
+  define('BALANCE_TYPE_DUEDATE', 1);
 
   define('DEBTOR_STATUS_ACTIVE', 1);
   define('DEBTOR_STATUS_ERROR', -1);
@@ -35,6 +39,20 @@
   define('VERBOSE_INFO', 2);		# above and things that changes
   define('VERBOSE_DEBUG', 3);		# above and verbose info
   define('VERBOSE_DEBUG_DEEP', 4);
+
+  $available_properties = array(
+    '$CREDITOR-BANKACCOUNT-CLEARINGNUMBER$',
+    '$CREDITOR-BANKACCOUNT-NUMBER$',
+    '$CREDITOR-BANKNAME$',
+    '$CREDITOR-CELLPHONENUMBER$',
+    '$CREDITOR-CITY$',
+    '$CREDITOR-COMPANYNAME$',
+    '$CREDITOR-COUNTRY$',
+    '$CREDITOR-POSTALCODE$',
+    '$CREDITOR-EMAIL',
+    '$CREDITOR-NAME$',
+    '$CREDITOR-STREET$'
+  );
 
   require_once('base3.php');
 
@@ -91,16 +109,129 @@
     return $merged;
   }
 
+  function get_balance_cost($balance_history, $thisdate) {
+    $cost_this_day = 0;
+    foreach ($balance_history as $balance) {
+      # if the current date is bigger or the same, then take this
+      if (strtotime($thisdate) == strtotime($balance['happened'])) {
+        # note, there can be multiple costs for this day
+        $cost_this_day += $balance['cost'];
+
+        # something has changed
+
+      }
+    }
+    return $cost_this_day;
+  }
+
+  # get latest reference rate for a specific date
+  function get_balance_latest_refrate($link, $thisdate) {
+
+    # static storage, kept on next function run
+    static $referencerates = false;
+
+    # init static variable, done first run
+    if ($referencerates === false) {
+      # get reference rate, descending
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_riksbank_reference_rate
+        ORDER BY updated DESC
+        ';
+      $referencerates = db_query($link, $sql);
+    }
+
+    $refrate = 0;
+    # go BACKWARDS, from latest to earliest
+    foreach ($referencerates as $raterow) {
+      # if the current date is bigger or the same, then take this
+      if (strtotime($thisdate) >= strtotime($raterow['updated'])) {
+        $refrate = $raterow['rate'];
+        break;
+      }
+    }
+    return $refrate;
+  }
+
+  function get_balance_mails_sent($link, $id_debtors, $thisdate) {
+    static $log = false;
+
+    # init of static variable, done first run
+    if ($log === false) {
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_log
+        WHERE
+          id_debtors='.dbres($link, $id_debtors).'
+          AND
+          type=2
+        ORDER BY created
+        ';
+      $log = db_query($link, $sql);
+    }
+
+    $mails_sent = 0;
+    foreach ($log as $row) {
+      # if the current date is the same, then take this
+      if (date('Y-m-d', strtotime($thisdate)) == date('Y-m-d', strtotime($row['created']))) {
+        $mails_sent += 1;
+        break;
+      }
+    }
+    return $mails_sent;
+  }
+
+  function get_balance_payment($balance_history, $thisdate) {
+    $payment_this_day = 0;
+    foreach ($balance_history as $balance) {
+
+      # if the current date is bigger or the same, then take this
+      if (strtotime($thisdate) == strtotime($balance['happened'])) {
+        # note, there can be multiple payments for this day
+        $payment_this_day += $balance['payment'];
+      }
+    }
+    return $payment_this_day;
+  }
+
+  function balance_is_this_duedate($balance_history, $thisdate) {
+    foreach ($balance_history as $balance) {
+      # if the current date is bigger or the same, then take this
+      if (strtotime($thisdate) == strtotime($balance['happened'])) {
+        # is this a due date
+        if ((int)$balance['type'] === BALANCE_TYPE_DUEDATE) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function get_balance_messages($balance_history, $message, $thisdate) {
+    foreach ($balance_history as $balance) {
+      # if the current date is bigger or the same, then take this
+      if (strtotime($thisdate) == strtotime($balance['happened'])) {
+        # is this a due date
+        if ((int)$balance['type'] === BALANCE_TYPE_DUEDATE) {
+          $message[] = t('Due date');
+        }
+
+        # get messages
+        if (
+          strlen($balance['message'])
+        ) {
+          $message[] = $balance['message'];
+        }
+      }
+    }
+    return $message;
+  }
+
   function balance_history($link, $id_debtors, $parameters=false) {
-    # get reference rate, descending
-    $sql = '
-      SELECT
-        *
-      FROM
-        invoicereminder_riksbank_reference_rate
-      ORDER BY updated DESC
-      ';
-    $referencerate = db_query($link, $sql);
 
     # get the debtor
     $sql = '
@@ -140,281 +271,265 @@
       ';
     $balance_history = db_query($link, $sql);
 
-    # get the debtor balance history
-    # get reference rate, descending
-    $sql = '
-      SELECT
-        *
-      FROM
-        invoicereminder_log
-      WHERE
-        id_debtors='.dbres($link, $id_debtors).'
-        AND
-        type=2
-      ORDER BY created
-      ';
-    $log = db_query($link, $sql);
-
     # last date in balance
     $lastbalancedate = count($balance_history) ? end($balance_history)['happened'] : false;
 
-    # start date and end date for interest calculation
-    $date1 = new DateTime($debtor['duedate']);
-    $date2 = isset($parameters['dateto']) && $parameters['dateto'] ? new DateTime($parameters['dateto']) : new DateTime();
-
-    # no need to remove one day here, as PHP does not add one
-    $days_elapsed = $date2->diff($date1)->format("%a");
-
-    # calculate interest for all days that has elapsed
-    $amount_accrued = 0;
-    $amount_this_day = 0;
-    $cost_accrued = 0;
-    $cost_this_day = 0;
-    $date_last_year_end = date('Y-m-d', strtotime("Last day of December", mktime(0, 0, 0, date('m'), date('d'), date('Y') - 1)));
-    $interest_accrued = 0;
-    $interest_this_day = 0;
-    $payment_accrued = 0;
-    $payment_this_day = 0;
-    $total_last_year_end = 0;
-    $last_refrate = false;
-    $summarization = array();
-
-    # walk the days
-    for ($i=1; $i <= $days_elapsed; $i++) {
-
-      # any changes this day?
-      $changesthisday = false;
-
-      $message = array();
-
-      # make a new date of the duedate
-      $thisdate = new DateTime($debtor['duedate']);
-      # add X days to this date
-      $thisdate->add(new DateInterval('P' . $i . 'D'));
-      # reformat it to Y-m-d
-      $thisdate = $thisdate->format('Y-m-d');
-
-      # --- reference rate
-
-      # find last reference rate - go BACKWARDS, from latest to earliest
-      $refrate = 0;
-      foreach ($referencerate as $raterow) {
-        # if the current date is bigger or the same, then take this
-        if (strtotime($thisdate) >= strtotime($raterow['updated'])) {
-          $refrate = $raterow['rate'];
-          if ($last_refrate !== $refrate) {
-            $last_refrate = $refrate;
-            $changesthisday = true;
-          }
-          break;
-        }
-      }
-
-      # --- mails
-      # find mail sendings
-      $mails_sent = 0;
-      foreach ($log as $row) {
-        # if the current date is the same, then take this
-        if (date('Y-m-d', strtotime($thisdate)) == date('Y-m-d', strtotime($row['created']))) {
-          $mails_sent += 1;
-          break;
-        }
-      }
-
-      # --- payment
-
-      # walk payments calculate to this day
-      $payment_this_day = 0;
-      $message = array();
-      foreach ($balance_history as $balance) {
-        # if the current date is bigger or the same, then take this
-        if (strtotime($thisdate) == strtotime($balance['happened'])) {
-          # note, there can be multiple payments for this day
-          $payment_this_day += $balance['payment'];
-
-          # something has changed
-          if ($payment_this_day !== 0) {
-            $changesthisday = true;
-          }
-
-          # get messages
-          if (
-            strlen($balance['message'])
-          ) {
-            $message[] = $balance['message'];
-          }
-        }
-      }
-
-      # add daily payments to the accrued one
-      $payment_accrued += $payment_this_day;
-
-      $payment_left = $payment_this_day;
-
-      # --- amount
-
-      # find current amount to calculate on
-      $amount_this_day = 0;
-      foreach ($balance_history as $balance) {
-        # if the current date is bigger or the same, then take this
-        if (strtotime($thisdate) == strtotime($balance['happened'])) {
-          $amount_this_day += $balance['amount'];
-
-          # something has changed
-          if ($amount_this_day !== 0) {
-            $changesthisday = true;
-          }
-        }
-
-      }
-
-      # add daily amount to the accrued one
-      $amount_accrued += $amount_this_day;
-      $amount_paid_this_day = 0;
-      # is there payment left and amount is more than 0?
-      if ($payment_left > 0 && $amount_accrued > 0) {
-        $changesthisday = true;
-        # more amount left than payment
-        if ($amount_accrued >= $payment_left) {
-          # use the full payment
-          $amount_accrued -= $payment_left;
-          $amount_paid_this_day = $payment_left;
-          $payment_left = 0;
-        } else {
-          # reduce the payment left with the amount accrued
-          $amount_paid_this_day = $payment_left - $amount_accrued;
-          $payment_left = $payment_left - $amount_accrued;
-          $amount_accrued = 0;
-        }
-      }
-
-      # --- interest - depends on amount
-      $interest_paid_this_day = 0;
-      # calculate interest for one day - if there is amount to calculate on
-      if ($amount_accrued > 0) {
-        # no changes this day - interest goes up all the time
-        $interest_this_day = (($amount_accrued) * ($debtor['percentage'] + $refrate)) / 365;
-        $interest_accrued += $interest_this_day;
-      # no amount to calculate on, then check if there is payment left to reduce interest
-      } else {
-        # is there payment left and interest is more than 0?
-        if ($payment_left > 0 && $interest_accrued > 0) {
-          $changesthisday = true;
-          # more interest left than payment
-          if ($interest_accrued >= $payment_left) {
-            # use the full payment
-            $interest_accrued -= $payment_left;
-            $interest_paid_this_day = $payment_left;
-            $payment_left = 0;
-          } else {
-            # reduce the payment left with the interest accrued
-            $interest_paid_this_day = $payment_left - $interest_accrued;
-            $payment_left = $payment_left - $interest_accrued;
-            $interest_accrued = 0;
-          }
-        }
-      }
-
-      # --- cost
-
-      # walk interestless costs calculate to this day
-      $cost_this_day = 0;
-      $message = array();
-      foreach ($balance_history as $balance) {
-        # if the current date is bigger or the same, then take this
-        if (strtotime($thisdate) == strtotime($balance['happened'])) {
-          # note, there can be multiple costs for this day
-          $cost_this_day += $balance['cost'];
-
-          # something has changed
-          if ($cost_this_day !== 0) {
-            $changesthisday = true;
-          }
-
-          # get messages
-          if (
-            strlen($balance['message'])
-          ) {
-            $message[] = $balance['message'];
-          }
-        }
-      }
-
-      # add daily costs to the accrued one
-      $cost_accrued += $cost_this_day;
-      $cost_paid_this_day = 0;
-      # is there payment left and cost is more than 0?
-      if ($payment_left > 0 && $cost_accrued > 0) {
-        $changesthisday = true;
-        # more cost left than payment
-        if ($cost_accrued >= $payment_left) {
-          # use the full payment
-          $cost_accrued -= $payment_left;
-          $cost_paid_this_day = $payment_left;
-          $payment_left = 0;
-        } else {
-          # reduce the payment left with the cost accrued
-          $cost_paid_this_day = $payment_left - $cost_accrued;
-          $payment_left = $payment_left - $cost_accrued;
-          $cost_accrued = 0;
-        }
-      }
-
-      # --- last year summary
-
-      # is this before or up to last years last day?
-      if (strtotime($thisdate) <= strtotime($date_last_year_end)) {
-        $total_last_year_end = $amount_accrued;
-        $total_last_year_end += $interest_accrued;
-        $total_last_year_end += $cost_accrued;
-      }
-
-      # --- day summary
-
-      # add this day to the history
-      $summarization[] = array(
-        'amount_accrued' => $amount_accrued,
-        'amount_paid_this_day' => $amount_paid_this_day,
-        'amount_this_day' => $amount_this_day,
-        'changesthisday' => $changesthisday,
-        'cost_accrued' => $cost_accrued,
-        'cost_paid_this_day' => $cost_paid_this_day,
-        'cost_this_day' => $cost_this_day,
-        'date' => $thisdate,
-        'interest_accrued' => $interest_accrued,
-        'interest_paid_this_day' => $interest_paid_this_day,
-        'interest_this_day' => $interest_this_day,
-        'payment_this_day' => $payment_this_day,
-        'payment_accrued' => $payment_accrued,
-        'mails_sent' => $mails_sent,
-        'message' => implode(' ', $message),
-        'rate' => $debtor['percentage'],
-        'refrate' => $refrate,
-        'total' => $amount_accrued + $interest_accrued + $cost_accrued
-      );
-
-      # check if all is paid and at the end of balance
-      if (
-        $amount_accrued === 0 &&
-        $interest_accrued === 0 &&
-        $cost_accrued === 0 &&
-        strtotime($lastbalancedate) <= strtotime(date('Y-m-d'))
-      ) {
-        # then stop
+    $duedate = false;
+    foreach ($balance_history as $row) {
+      if ((int)$row['type'] === BALANCE_TYPE_DUEDATE) {
+        $duedate = date('Y-m-d', strtotime($row['happened']));
         break;
       }
     }
 
+    ***REMOVED***
+    if (false) {
+      ***REMOVED***
+    }
+
+    $summarization = array();
+    $date_last_year_end = date('Y-m-d', strtotime("Last day of December", mktime(0, 0, 0, date('m'), date('d'), date('Y') - 1)));
+    $total_last_year_end = 0;
+
+    if ($duedate) {
+
+      # start date and end date for interest calculation
+      $date1 = new DateTime($duedate);
+      $date2 = isset($parameters['dateto']) && $parameters['dateto'] ? new DateTime($parameters['dateto']) : new DateTime();
+
+      # no need to remove one day here, as PHP does not add one
+      $days_elapsed = $date2->diff($date1)->format("%a");
+
+      # calculate interest for all days that has elapsed
+      $amount_accrued = 0;
+      $amount_this_day = 0;
+      $cost_accrued = 0;
+      $cost_this_day = 0;
+      $interest_accrued = 0;
+      $interest_this_day = 0;
+      $last_refrate = false;
+      $owing_accrued = 0;
+      $payment_accrued = 0;
+
+      # walk the days
+      for ($i=0; $i <= $days_elapsed; $i++) {
+
+        # any changes this day?
+        $changesthisday = false;
+
+        # messages for this day container
+        $message = array();
+
+        # make a new date of the duedate
+        $thisdate = new DateTime($duedate);
+
+        # add X days to this date
+        $thisdate->add(new DateInterval('P' . $i . 'D'));
+
+        # reformat it to Y-m-d
+        $thisdate = $thisdate->format('Y-m-d');
+
+        $duedate_passed = strtotime($thisdate) > strtotime($duedate);
+
+        # --- duedate
+        if (balance_is_this_duedate($balance_history, $thisdate)) {
+          $changesthisday = true;
+        }
+
+        # --- reference rate
+
+        # find last reference rate
+        $refrate = get_balance_latest_refrate($link, $thisdate);
+        if ($last_refrate !== $refrate) {
+          $last_refrate = $refrate;
+          $changesthisday = true;
+        }
+
+        # --- mails
+        # find mail sendings
+        $mails_sent = get_balance_mails_sent($link, $id_debtors, $thisdate);
+        # --- payment
+
+        # walk payments calculate to this day
+        $message = array();
+        $payment_paid_this_day = 0;
+        $payment_this_day = get_balance_payment($balance_history, $thisdate);
+        if ($payment_this_day !== 0) {
+          $changesthisday = true;
+        }
+
+        # add daily payments to the accrued one
+        $payment_accrued += $payment_this_day;
+
+        # --- amount
+
+        # find current amount to calculate on
+        $amount_this_day = 0;
+        foreach ($balance_history as $balance) {
+          # if the current date is bigger or the same, then take this
+          if (strtotime($thisdate) == strtotime($balance['happened'])) {
+            $amount_this_day += $balance['amount'];
+
+            # something has changed
+            if ($amount_this_day !== 0) {
+              $changesthisday = true;
+            }
+          }
+
+        }
+
+        # add daily amount to the accrued one
+        $amount_accrued += $amount_this_day;
+        $amount_paid_this_day = 0;
+        # is there payment left and amount is more than 0?
+        if ($payment_accrued > 0 && $amount_accrued > 0) {
+          $changesthisday = true;
+          # more amount left than payment
+          if ($amount_accrued >= $payment_accrued) {
+            # use the full payment
+            $amount_accrued -= $payment_accrued;
+            $amount_paid_this_day = $payment_accrued;
+            $payment_paid_this_day += $payment_accrued;
+            $payment_accrued = 0;
+          } else {
+            # reduce the payment left with the amount accrued
+            $amount_paid_this_day = $amount_accrued;
+            $payment_accrued = $payment_accrued - $amount_accrued;
+            $payment_paid_this_day += $amount_accrued;
+            $amount_accrued = 0;
+          }
+        }
+
+        # --- interest - depends on amount
+        $interest_this_day = 0;
+        $interest_paid_this_day = 0;
+        $rate = 0;
+        # calculate interest for one day - if there is amount to calculate on
+        if ($amount_accrued > 0 && $duedate_passed) {
+
+          $rate = $debtor['percentage'];
+
+          # no changes this day - interest goes up all the time
+          $interest_this_day = (($amount_accrued) * ($rate + $refrate)) / (date('z', mktime(0, 0, 0, 12, 31, date('Y', strtotime($thisdate)))) + 1);
+          $interest_accrued += $interest_this_day;
+        # no amount to calculate on, then check if there is payment left to reduce interest
+        } else {
+          $refrate = 0;
+          # is there payment left and interest is more than 0?
+          if ($payment_accrued > 0 && $interest_accrued > 0) {
+            $changesthisday = true;
+
+            # more interest left than payment
+            if ($interest_accrued >= $payment_accrued) {
+              # use the full payment
+              $interest_accrued -= $payment_accrued;
+              $interest_paid_this_day = $payment_accrued;
+              $payment_paid_this_day += $payment_accrued;
+              $payment_accrued = 0;
+            } else {
+              # reduce the payment left with the interest accrued
+              $interest_paid_this_day = $interest_accrued;
+              $payment_paid_this_day += $interest_accrued;
+              $payment_accrued = $payment_accrued - $interest_accrued;
+              $interest_accrued = 0;
+            }
+
+          }
+        }
+
+        # --- cost
+
+        # walk interestless costs calculate to this day
+        $cost_this_day = get_balance_cost($balance_history, $thisdate);
+        if ($cost_this_day !== 0) {
+          $changesthisday = true;
+        }
+
+        $message = get_balance_messages($balance_history, $message, $thisdate);
+
+        # add daily costs to the accrued one
+        $cost_accrued += $cost_this_day;
+        $cost_paid_this_day = 0;
+
+        # is there payment left and cost is more than 0?
+        if ($payment_accrued > 0 && $cost_accrued > 0) {
+          $changesthisday = true;
+          # more cost left than payment
+          if ($cost_accrued >= $payment_accrued) {
+            # use the full payment
+            $cost_accrued -= $payment_accrued;
+            $cost_paid_this_day = $payment_accrued;
+            $payment_paid_this_day += $payment_accrued;
+            $payment_accrued = 0;
+          } else {
+            # reduce the payment left with the cost accrued
+            $cost_paid_this_day = $cost_accrued;
+            $payment_paid_this_day += $cost_accrued;
+            $payment_accrued = $payment_accrued - $cost_accrued;
+            $cost_accrued = 0;
+          }
+        }
+
+        # --- last year summary
+
+        # is this before or up to last years last day?
+        if (strtotime($thisdate) <= strtotime($date_last_year_end)) {
+          $total_last_year_end = $amount_accrued;
+          $total_last_year_end += $interest_accrued;
+          $total_last_year_end += $cost_accrued;
+        }
+
+        # --- day summary
+
+        # add this day to the history
+        $summarization[] = array(
+          'amount_accrued' => $amount_accrued,
+          'amount_paid_this_day' => $amount_paid_this_day,
+          'amount_this_day' => $amount_this_day,
+          'changesthisday' => $changesthisday,
+          'cost_accrued' => $cost_accrued,
+          'cost_paid_this_day' => $cost_paid_this_day,
+          'cost_this_day' => $cost_this_day,
+          'date' => $thisdate,
+          'interest_accrued' => $interest_accrued,
+          'interest_paid_this_day' => $interest_paid_this_day,
+          'interest_this_day' => $interest_this_day,
+          'mails_sent' => $mails_sent,
+          'message' => implode(' ', $message),
+          'owing_accrued' => $owing_accrued,
+          'payment_accrued' => $payment_accrued,
+          'payment_paid_this_day' => $payment_paid_this_day,
+          'payment_this_day' => $payment_this_day,
+          'rate' => $rate,
+          'refrate' => $refrate,
+          'rate_accrued' => $rate + $refrate,
+          'total' => $amount_accrued + $interest_accrued + $cost_accrued
+        );
+
+        # check if all is paid and at the end of balance
+        if (
+          $amount_accrued === 0 &&
+          $interest_accrued === 0 &&
+          round($cost_accrued, 2) === 0.00 && # cost ends in precision debt without rate
+          strtotime($lastbalancedate) <= strtotime($thisdate)
+        ) {
+          # then stop
+          break;
+        }
+      }
+    } # if-duedate
+
     return array(
       'history' => $summarization,
       'special' => array(
+        'duedate' => $duedate,
         'date_last_year_end' => $date_last_year_end,
         'total_last_year_end' => $total_last_year_end
       )
     );
   }
 
-  function compose_mail($link, $id_debtors) {
+  function compose_mail($link, $id_debtors, $templatefile=false) {
     # get all active debtors with active status and not reminded yet
     $sql = '
       SELECT
@@ -440,8 +555,10 @@
 
     $debtor = $debtors[0];
 
-    # get the template
-    $templatefile = TEMPLATE_DIR.$debtor['template'];
+    if (!$templatefile) {
+      # get the template
+      $templatefile = TEMPLATE_DIR.$debtor['template'];
+    }
 
     # log it
     cl($link, VERBOSE_DEBUG, 'Using template: '.$templatefile, $debtor['id']);
@@ -449,8 +566,10 @@
     # no template file, fatal error
     if (!$templatefile) {
 
-      # disable all debtors with this template
-      disable_debtors_with_template($link, $debtor['template']);
+      if ($templatefile === $debtor['template']) {
+        # disable all debtors with this template
+        disable_debtors_with_template($link, $debtor['template']);
+      }
 
       # log it
       cl(
@@ -530,10 +649,10 @@
 
     # placeholder that must exist in template
     $placeholders_must_exist = array(
-      '$AMOUNT$',
+      '$AMOUNT-ACCRUED$',
       '$DUEDATE$',
       '$INVOICEDATE$',
-      # '$INVOICENUMBER$',
+      # '$INVOICE-NUMBER$',
       '$PERCENTAGE$',
       '$TOTAL$'
     );
@@ -541,19 +660,19 @@
     # fill placeholders
     $placeholders = array(
       '$ADDRESS$' => $debtor['address'],
-      '$AMOUNTACCRUED$' => money($lastrow['amount_accrued']),
+      '$AMOUNT-ACCRUED$' => money($lastrow['amount_accrued']),
       '$CITY$' => $debtor['city'],
       '$COSTACCRUED$' => money($lastrow['cost_accrued']),
-      '$DUEDATE$' => $debtor['duedate'],
+      '$DUEDATE$' => $balance_history['special']['duedate'],
       '$EMAIL$' => $debtor['email'],
       '$INTERESTACCRUED$' => money($lastrow['interest_accrued']),
       '$INTERESTDATE$' => date('Y-m-d'),
       '$INTERESTPERDAY$' => money($lastrow['interest_this_day']),
       '$INVOICEDATE$' => $debtor['invoicedate'],
-      '$INVOICENUMBER$' => $debtor['invoicenumber'],
+      '$INVOICE-NUMBER$' => $debtor['invoicenumber'],
       '$NAME$' => $debtor['name'],
       '$ORGNO$' => $debtor['orgno'],
-      '$PERCENTAGE$' => percentage(($debtor['percentage'] + $lastrow['refrate']) * 100, 2),
+      '$RATEACCRUED$' => percentage(($lastrow['rate_accrued']) * 100, 2),
       '$TOTAL$' => money($lastrow['amount_accrued'] + $lastrow['interest_accrued'] + $lastrow['cost_accrued']),
       '$ZIPCODE$' => $debtor['zipcode']
     );
@@ -637,6 +756,8 @@
 
     return array(
       'headers' => $headers,
+      'templatefile' => basename($templatefile),
+      'templatefile_default' => basename($debtor['template']),
       'to' => $debtor['email'],
       'subject' => $subject,
       'body' => $body,
