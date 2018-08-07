@@ -63,10 +63,10 @@
       $iu = array(
           'amount' => $amount,
           'cost' => $cost,
-          'payment' => $payment,
-          'type' => $type,
           'happened' => $happened,
-          'message' => $message
+          'message' => $message,
+          'payment' => $payment,
+          'type' => $type
       );
 
       # new balance
@@ -117,8 +117,8 @@
         'name' => $name,
         'orgno' => $orgno,
         'percentage' => (float)str_replace(',', '.', $percentage) / 100,
-        'remindercost' => $remindercost,
         'reminder_days' => $reminder_days,
+        'remindercost' => $remindercost,
         'status' => $status,
         'template' => $template,
         'updated' => date('Y-m-d H:i:s'),
@@ -211,6 +211,39 @@
       }
 
       header('Location: ?view=properties');
+      die();
+    case 'delete_balance':
+
+      # new property
+      if (!$id_balance) {
+        echo t('Missing').' id_properties';
+        die();
+      # update property
+      }
+
+      # new property
+      if (!$id_debtors) {
+        echo t('Missing').' id_debtors';
+        die();
+      # update property
+      }
+
+      $iu = dbpua($link, $iu);
+      $sql = '
+        DELETE FROM
+          invoicereminder_balance
+          '.implode(', ', $iu).'
+        WHERE
+          id="'.dbres($link, $id_balance).'"
+        ';
+
+      $r = db_query($link, $sql);
+      if ($r === false) {
+        cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+        die(1);
+      }
+
+      header('Location: ?view=balance&id_debtors='.$id_debtors);
       die();
     case 'delete_property':
 
@@ -519,6 +552,7 @@
 
       $balance_history = balance_history($link, $id_debtors);
       break;
+
     case 'log':
       $sql = '
         SELECT
@@ -536,6 +570,7 @@
         die(1);
       }
       break;
+
     case 'mail':
       $templatefile = false;
 
@@ -560,6 +595,7 @@
 
       $mail = compose_mail($link, $id_debtors, $templatefile, true);
       break;
+
     case 'referencerate':
       $sql = '
         SELECT
@@ -582,7 +618,6 @@
         ';
       $properties = db_query($link, $sql);
       break;
-
   }
 
 ?><!DOCTYPE html>
@@ -742,142 +777,7 @@
       <td><?php echo $row['message']; ?></td>
       <td>
         <a href="?view=edit_balance&amp;id_balance=<?php echo $row['id']?>&amp;id_debtors=<?php echo $id_debtors; ?>"><?php echo t('Edit'); ?></a>
-      </td>
-    </tr>
-<?php
-      }
-?>
-  </table>
-<?php
-      break;
-    case 'history':
-?>
-  <h2><?php echo t('Debt history'); ?></h2>
-  <p><?php echo t('Debtor'); ?>: <?php echo $debtor['name']?> (#<?php echo $debtor['id']; ?>).
-  <p>
-    <?php echo t('This page shows debt history.'); ?>
-  </p>
-  <p>
-    Visa:
-    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=1"><?php echo t('Changes'); ?></a>
-    /
-    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=0"><?php echo t('Everything'); ?></a>
-    /
-    <a href="?view=balance&amp;id_debtors=<?=$id_debtors?>"><?php echo t('Balance'); ?></a>
-  </p>
-  <table border="1">
-    <tr>
-      <th><?php echo t('Day-#'); ?></th>
-      <th><?php echo t('Date'); ?></th>
-      <th><?php echo t('Debt amount'); ?></th>
-      <th><?php echo t('Accrued interest'); ?></th>
-      <th><?php echo t('Cost'); ?></th>
-      <th><?php echo t('Payments'); ?></th>
-      <th><?php echo t('Rate'); ?> (%) (<?php echo t('Reference rate'); ?> %)</th>
-      <th><?php echo t('Total'); ?></th>
-      <th><?php echo t('Message'); ?></th>
-      <th><?php echo t('Mail'); ?></th>
-      <th><?php echo t('Manage'); ?></th>
-    </tr>
-<?php
-      # walk debtors
-      foreach ($balance_history['history'] as $k => $row) {
-
-        if ($onlychanges == '1') {
-          # is this a change row or last row
-          if (
-            !$row['changesthisday'] &&
-            $k !== 0 &&
-            $k !== count($balance_history['history']) - 1
-          ) {
-            continue;
-          }
-        }
-?>
-    <tr>
-      <td><?php echo $k + 1 ?></td>
-      <td><?php echo $row['date'] ?></td>
-      <td class="amount">
-        <?php echo money($row['amount_accrued']) ?>
-<?php
-        $changes = array();
-        if ($row['amount_this_day'] !== 0) {
-          $changes[] = ($row['amount_this_day'] > 0 ? '+' : '').money($row['amount_this_day']);
-        }
-
-        if ($row['amount_paid_this_day'] !== 0) {
-          $changes[] = (-$row['amount_paid_this_day'] > 0 ? '+' : '').money(-$row['amount_paid_this_day']);
-        }
-        # any change this day?
-        if (count($changes)) {
-?>
-          (<?php echo implode(', ', $changes) ?>)
-<?php
-        }
-?>
-      </td>
-      <td class="amount">
-        <?php echo money($row['interest_accrued']) ?>
-<?php
-        $changes = array();
-        if ($row['interest_this_day'] !== 0) {
-          $changes[] = ($row['interest_this_day'] > 0 ? '+' : '').money($row['interest_this_day']);
-        }
-
-        if ($row['interest_paid_this_day'] !== 0) {
-          $changes[] = (-$row['interest_paid_this_day'] > 0 ? '+' : '').money(-$row['interest_paid_this_day']);
-        }
-        # any change this day?
-        if (count($changes)) {
-?>
-          (<?php echo implode(', ', $changes) ?>)
-<?php
-        }
-?>
-      </td>
-      <td class="amount">
-        <?php echo money($row['cost_accrued']) ?>
-<?php
-        $changes = array();
-        if ($row['cost_this_day'] !== 0) {
-          $changes[] = ($row['cost_this_day'] > 0 ? '+' : '').money($row['cost_this_day']);
-        }
-
-        if ($row['cost_paid_this_day'] !== 0) {
-          $changes[] = (-$row['cost_paid_this_day'] > 0 ? '+' : '').money(-$row['cost_paid_this_day']);
-        }
-        # any change this day?
-        if (count($changes)) {
-?>
-          (<?php echo implode(', ', $changes) ?>)
-<?php
-        }
-?>
-      </td>
-      <td class="amount">
-        <?php echo money($row['payment_accrued']) ?>
-<?php
-        $changes = array();
-        if ($row['payment_this_day'] !== 0) {
-          $changes[] = ($row['payment_this_day'] > 0 ? '+' : '').money($row['payment_this_day']);
-        }
-        if ($row['payment_paid_this_day'] !== 0) {
-          $changes[] = (-$row['payment_paid_this_day'] > 0 ? '+' : '').money(-$row['payment_paid_this_day']);
-        }
-        # any change this day?
-        if (count($changes)) {
-?>
-          (<?php echo implode(', ', $changes) ?>)
-<?php
-        }
-?>
-      </td>
-      <td class="percentage"><?php echo percentage(($row['rate_accrued'])*100).' ('.percentage($row['refrate']*100).')' ?></td>
-      <td class="amount"><?php echo money($row['total']) ?></td>
-      <td><?php echo $row['message'] ?></td>
-      <td><?php echo $row['mails_sent'] ?></td>
-      <td>
-        <a href="?view=mail&amp;id_debtors=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
+        <a href="?action=delete_balance&amp;id_balance=<?php echo $row['id']?>&amp;id_debtors=<?php echo $id_debtors; ?>"><?php echo t('Delete') ?></a>
       </td>
     </tr>
 <?php
@@ -1065,6 +965,142 @@
   </form>
 <?php
       break;
+    case 'history':
+?>
+  <h2><?php echo t('Debt history'); ?></h2>
+  <p><?php echo t('Debtor'); ?>: <?php echo $debtor['name']?> (#<?php echo $debtor['id']; ?>).
+  <p>
+    <?php echo t('This page shows debt history.'); ?>
+  </p>
+  <p>
+    Visa:
+    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=1"><?php echo t('Changes'); ?></a>
+    /
+    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=0"><?php echo t('Everything'); ?></a>
+    /
+    <a href="?view=balance&amp;id_debtors=<?=$id_debtors?>"><?php echo t('Balance'); ?></a>
+  </p>
+  <table border="1">
+    <tr>
+      <th><?php echo t('Day-#'); ?></th>
+      <th><?php echo t('Date'); ?></th>
+      <th><?php echo t('Debt amount'); ?></th>
+      <th><?php echo t('Accrued interest'); ?></th>
+      <th><?php echo t('Cost'); ?></th>
+      <th><?php echo t('Payments'); ?></th>
+      <th><?php echo t('Rate'); ?> (%) (<?php echo t('Reference rate'); ?> %)</th>
+      <th><?php echo t('Total'); ?></th>
+      <th><?php echo t('Message'); ?></th>
+      <th><?php echo t('Mail'); ?></th>
+      <th><?php echo t('Manage'); ?></th>
+    </tr>
+<?php
+      # walk debtors
+      foreach ($balance_history['history'] as $k => $row) {
+
+        if ($onlychanges == '1') {
+          # is this a change row or last row
+          if (
+            !$row['changesthisday'] &&
+            $k !== 0 &&
+            $k !== count($balance_history['history']) - 1
+          ) {
+            continue;
+          }
+        }
+?>
+    <tr>
+      <td><?php echo $k + 1 ?></td>
+      <td><?php echo $row['date'] ?></td>
+      <td class="amount">
+        <?php echo money($row['amount_accrued']) ?>
+<?php
+        $changes = array();
+        if ($row['amount_this_day'] !== 0) {
+          $changes[] = ($row['amount_this_day'] > 0 ? '+' : '').money($row['amount_this_day']);
+        }
+
+        if ($row['amount_paid_this_day'] !== 0) {
+          $changes[] = (-$row['amount_paid_this_day'] > 0 ? '+' : '').money(-$row['amount_paid_this_day']);
+        }
+        # any change this day?
+        if (count($changes)) {
+?>
+          (<?php echo implode(', ', $changes) ?>)
+<?php
+        }
+?>
+      </td>
+      <td class="amount">
+        <?php echo money($row['interest_accrued']) ?>
+<?php
+        $changes = array();
+        if ($row['interest_this_day'] !== 0) {
+          $changes[] = ($row['interest_this_day'] > 0 ? '+' : '').money($row['interest_this_day']);
+        }
+
+        if ($row['interest_paid_this_day'] !== 0) {
+          $changes[] = (-$row['interest_paid_this_day'] > 0 ? '+' : '').money(-$row['interest_paid_this_day']);
+        }
+        # any change this day?
+        if (count($changes)) {
+?>
+          (<?php echo implode(', ', $changes) ?>)
+<?php
+        }
+?>
+      </td>
+      <td class="amount">
+        <?php echo money($row['cost_accrued']) ?>
+<?php
+        $changes = array();
+        if ($row['cost_this_day'] !== 0) {
+          $changes[] = ($row['cost_this_day'] > 0 ? '+' : '').money($row['cost_this_day']);
+        }
+
+        if ($row['cost_paid_this_day'] !== 0) {
+          $changes[] = (-$row['cost_paid_this_day'] > 0 ? '+' : '').money(-$row['cost_paid_this_day']);
+        }
+        # any change this day?
+        if (count($changes)) {
+?>
+          (<?php echo implode(', ', $changes) ?>)
+<?php
+        }
+?>
+      </td>
+      <td class="amount">
+        <?php echo money($row['payment_accrued']) ?>
+<?php
+        $changes = array();
+        if ($row['payment_this_day'] !== 0) {
+          $changes[] = ($row['payment_this_day'] > 0 ? '+' : '').money($row['payment_this_day']);
+        }
+        if ($row['payment_paid_this_day'] !== 0) {
+          $changes[] = (-$row['payment_paid_this_day'] > 0 ? '+' : '').money(-$row['payment_paid_this_day']);
+        }
+        # any change this day?
+        if (count($changes)) {
+?>
+          (<?php echo implode(', ', $changes) ?>)
+<?php
+        }
+?>
+      </td>
+      <td class="percentage"><?php echo percentage(($row['rate_accrued'])*100).' ('.percentage($row['refrate']*100).')' ?></td>
+      <td class="amount"><?php echo money($row['total']) ?></td>
+      <td><?php echo $row['message'] ?></td>
+      <td><?php echo $row['mails_sent'] ?></td>
+      <td>
+        <a href="?view=mail&amp;id_debtors=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
+      </td>
+    </tr>
+<?php
+      }
+?>
+  </table>
+<?php
+      break;
     case 'log':
 ?>
   <h2><?php echo t('E-mail log'); ?></h2>
@@ -1208,23 +1244,6 @@
 ?>
   </table>
 <?php
-/*
-  <h2><?php echo t('National interest rate'); ?></h2>
-  <form action="?" method="post">
-    <fieldset>
-      <label><?php echo t('Valid from'); ?> (YYYY-MM-DD):</label>
-      <input type="text" name="updated">
-      <br>
-
-      <label><?php echo t('Reference rate'); ?>:</label>
-      <input type="text" name="referencerate">
-      <br>
-
-      <input type="submit" name="submit_edit_debtor" value="<?php echo t('Save'); ?>">
-      <br>
-    </fieldset>
-  </form>
-*/
     break;
 
   }
