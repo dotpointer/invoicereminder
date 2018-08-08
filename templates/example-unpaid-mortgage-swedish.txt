@@ -8,7 +8,7 @@ Detta är en påminnelse på skuld på obetald och förfallet lån ni tagit av m
 Lånedatum: $INVOICE-DATE$
 Förfallodag: $DUE-DATE$
 Avgifter: $COST-ACCRUED$ SEK
-Upplupen ränta: $INTEREST-ACCRUED$ SEK
+Upplupen ränta: $INTEREST-ACCRUED$ SEK ($RATE-ACCRUED$%)
 Kvarvarande lånebelopp: $AMOUNT-ACCRUED$ SEK
 
 Totalt att betala: $TOTAL$ SEK (till och med $INTEREST-DATE$)

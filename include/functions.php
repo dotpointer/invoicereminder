@@ -19,10 +19,9 @@
   # 2018-08-07 20:28:00 - adding balance
   # 2018-08-08 17:04:00 - adding balance
   # 2018-08-08 17:18:00 - renaming properties table
+  # 2018-08-08 17:43:00 - moving setup downwards to make verbosity constants available
 
   define('SITE_SHORTNAME', 'invoicereminder');
-
-  require_once('setup.php');
 
   define('BALANCE_TYPE_NORMAL', 0);
   define('BALANCE_TYPE_DUEDATE', 1);
@@ -42,6 +41,8 @@
   define('VERBOSE_INFO', 2);		# above and things that changes
   define('VERBOSE_DEBUG', 3);		# above and verbose info
   define('VERBOSE_DEBUG_DEEP', 4);
+
+  require_once('setup.php');
 
   $available_properties = array(
     '$CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$',

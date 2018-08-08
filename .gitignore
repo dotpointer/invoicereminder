@@ -2,3 +2,5 @@
 include/setup.php
 templates/*
 !templates/example-*
+notes.txt
+
