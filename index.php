@@ -15,18 +15,21 @@
   # 2018-08-04 13:38:00 - translations
   # 2018-08-07 19:15:00 - adding balance
   # 2018-08-08 20:31:00 - adding balance
+  # 2018-08-08 17:04:00 - adding balance
 
   require_once('include/functions.php');
 
   start_translations();
 
   # parameters
+
   $action = isset($_REQUEST['action']) ? $_REQUEST['action'] : false;
   $address = isset($_REQUEST['address']) ? $_REQUEST['address'] : false;
   $amount = isset($_REQUEST['amount']) ? $_REQUEST['amount'] : false;
   $city = isset($_REQUEST['city']) ? $_REQUEST['city'] : false;
   $collectioncost = isset($_REQUEST['collectioncost']) ? $_REQUEST['collectioncost'] : false;
   $cost = isset($_REQUEST['cost']) ? $_REQUEST['cost'] : false;
+  $dateto = isset($_REQUEST['dateto']) ? $_REQUEST['dateto'] : false;
   $day_of_month = isset($_REQUEST['day_of_month']) ? $_REQUEST['day_of_month'] : false;
   $email = isset($_REQUEST['email']) ? $_REQUEST['email'] : false;
   $email_bcc = isset($_REQUEST['email_bcc']) ? $_REQUEST['email_bcc'] : false;
@@ -54,9 +57,6 @@
   $value = isset($_REQUEST['value']) ? $_REQUEST['value'] : false;
   $view = isset($_REQUEST['view']) ? $_REQUEST['view'] : false;
   $zipcode = isset($_REQUEST['zipcode']) ? $_REQUEST['zipcode'] : false;
-
-  $dateto = isset($_REQUEST['dateto']) ? $_REQUEST['dateto'] : false;
-
 
   switch ($action) {
     case 'insert_update_balance':
@@ -646,9 +646,9 @@
       <th>#</th>
       <th><?php echo t('Invoice-#'); ?></th>
       <th><?php echo t('Name'); ?></th>
-      <th><?php echo t('Invoice amount'); ?></th>
-      <th><?php echo t('Costs'); ?></th>
+      <th><?php echo t('Amount'); ?></th>
       <th><?php echo t('Interest'); ?> (%)<br><?php echo t('Accrued'); ?></th>
+      <th><?php echo t('Costs'); ?></th>
       <th><?php echo t('Total'); ?></th>
       <th><?php echo t('E-mail'); ?></th>
       <th><?php echo t('Due date'); ?></th>
@@ -662,6 +662,7 @@
 <?php
       # walk debtors
       foreach ($debtors as $debtor) {
+        $bend = end($debtor['balance_history']['history']);
 ?>
     <tr>
       <td><?php echo $debtor['id']; ?></td>
@@ -673,24 +674,18 @@
         <?php echo $debtor['orgno']; ?>
       </td>
       <td class="amount">
-        <?php echo money($debtor['amount']); ?> kr
-      </td>
-      <td class="amount">
-<?php
-    foreach ($debtor['balance_history']['history'] as $bk => $b) {
-      if ($b['cost_this_day'] === 0) continue;
-      if ($bk) {
-        ?><br><?php
-      }
-      echo $b['message'].' '.money($b['cost_this_day']); ?> kr<?php
-    }
-    $bend = end($debtor['balance_history']['history']);
-?>
+        <?php echo money($bend['amount_accrued']); ?> kr
       </td>
       <td class="percentage">
         <?php echo isset($bend['rate_accrued']) ? $bend['rate_accrued'] * 100 : '?'; ?>%<br>
 <?php
-      echo isset($bend['interest_accrued']) ? money($bend['interest_accrued']) : ''; ?> kr
+        echo isset($bend['interest_accrued']) ? money($bend['interest_accrued']) : '';
+?> kr
+      </td>
+      <td class="amount">
+<?php
+        echo isset($bend['cost_accrued']) ? money($bend['cost_accrued']) : '';
+?>
       </td>
       <td class="amount">
         <?php echo isset($bend['amount_accrued'], $bend['interest_accrued'], $bend['cost_accrued']) ? money($bend['amount_accrued'] + $bend['interest_accrued'] + $bend['cost_accrued']) : ''; ?> kr

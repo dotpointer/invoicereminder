@@ -16,11 +16,13 @@
   # 2018-08-04 13:38:00 - translations
   # 2018-08-06 00:00:00 - adding balance
   # 2018-08-07 19:15:00 - adding balance
-  # 2018-08-08 20:28:00 - adding balance
+  # 2018-08-07 20:28:00 - adding balance
+  # 2018-08-08 17:04:00 - adding balance
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
   require_once('setup.php');
+
   define('BALANCE_TYPE_NORMAL', 0);
   define('BALANCE_TYPE_DUEDATE', 1);
 
@@ -31,7 +33,6 @@
   define('LOG_TYPE_ERROR', -1);
   define('LOG_TYPE_MAIL_SENT', 1);
 
-  define('TEMPLATE_DEFAULT', 'default.txt');
   define('TEMPLATE_DIR', 'templates/');
 
   # verbosity
@@ -285,11 +286,6 @@
       }
     }
 
-    ***REMOVED***
-    if (false) {
-      ***REMOVED***
-    }
-
     $summarization = array();
     $date_last_year_end = date('Y-m-d', strtotime("Last day of December", mktime(0, 0, 0, date('m'), date('d'), date('Y') - 1)));
     $total_last_year_end = 0;
@@ -435,7 +431,6 @@
               $payment_accrued = $payment_accrued - $interest_accrued;
               $interest_accrued = 0;
             }
-
           }
         }
 
@@ -524,9 +519,9 @@
     return array(
       'history' => $summarization,
       'special' => array(
-        'send_mail' => $send_mail,
-        'duedate' => $duedate,
         'date_last_year_end' => $date_last_year_end,
+        'duedate' => $duedate,
+        'send_mail' => $send_mail,
         'total_last_year_end' => $total_last_year_end
       )
     );
@@ -686,10 +681,7 @@
     # placeholder that must exist in template
     $placeholders_must_exist = array(
       '$AMOUNT-ACCRUED$',
-      '$DUE-DATE$',
-      '$INVOICE-DATE$',
-      # '$INVOICE-NUMBER$',
-      '$PERCENTAGE$',
+      '$RATE-ACCRUED$',
       '$TOTAL$'
     );
 
@@ -944,8 +936,6 @@
         }
       }
     }
-
-    # return $contents;
   }
 
   function money($amount) {

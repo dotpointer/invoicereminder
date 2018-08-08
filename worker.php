@@ -14,6 +14,7 @@
   # 2018-07-30 00:00:00 - adding balance
   # 2018-07-31 00:00:00 - adding balance
   # 2018-08-01 18:50:00 - adding balance
+  # 2018-08-08 17:05:00 - adding balance
 
   require_once('include/functions.php');
 
@@ -210,14 +211,12 @@ Invoice reminder application
 
         # try to send the mail
         if (!$config_opt['main']['dryrun']) {
-        /*
           $mail_sent = mail(
             $mail['to'],
             $mail['subject'],
             $mail['body'],
             implode("\r\n", $mail['headers'])
           );
-          */
         } else {
           $mail_sent = true;
         }
