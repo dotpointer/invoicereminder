@@ -16,6 +16,7 @@
   # 2018-08-07 19:15:00 - adding balance
   # 2018-08-08 20:31:00 - adding balance
   # 2018-08-08 17:04:00 - adding balance
+  # 2018-08-08 17:18:00 - renaming properties table
 
   require_once('include/functions.php');
 
@@ -171,7 +172,7 @@
           SELECT
             id
           FROM
-            properties
+            invoicereminder_properties
           WHERE
             property="'.dbres($link, $property).'"';
           $properties = db_query($link, $sql);
@@ -186,7 +187,7 @@
         $iu['created'] = date('Y-m-d H:i:s');
         $iu = dbpia($link, $iu);
         $sql = '
-          INSERT INTO properties ('.
+          INSERT INTO invoicereminder_properties ('.
             implode(', ', array_keys($iu)).
           ') VALUES('.
             implode(', ', $iu).
@@ -196,7 +197,7 @@
         $iu = dbpua($link, $iu);
         $sql = '
           UPDATE
-            properties
+            invoicereminder_properties
           SET
             '.implode(', ', $iu).'
           WHERE
@@ -258,7 +259,7 @@
       $iu = dbpua($link, $iu);
       $sql = '
         DELETE FROM
-          properties
+          invoicereminder_properties
           '.implode(', ', $iu).'
         WHERE
           id="'.dbres($link, $id_properties).'"
@@ -463,7 +464,7 @@
           SELECT
             *
           FROM
-            properties
+            invoicereminder_properties
           WHERE
             id="'.dbres($link, $id_properties).'"
           ';
@@ -490,7 +491,7 @@
         SELECT
           *
         FROM
-          properties
+          invoicereminder_properties
         ';
       $properties = db_query($link, $sql);
       if ($properties === false) {
@@ -611,7 +612,7 @@
         SELECT
           *
         FROM
-          properties
+          invoicereminder_properties
         ORDER BY
           property
         ';

@@ -18,6 +18,7 @@
   # 2018-08-07 19:15:00 - adding balance
   # 2018-08-07 20:28:00 - adding balance
   # 2018-08-08 17:04:00 - adding balance
+  # 2018-08-08 17:18:00 - renaming properties table
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
@@ -558,7 +559,7 @@
       SELECT
         *
       FROM
-        properties
+        invoicereminder_properties
       ';
 
     cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
