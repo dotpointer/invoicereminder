@@ -5,6 +5,7 @@
 # changelog
 # 2018-08-04 12:48:00
 # 2018-08-08 20:30:00 - adding balance
+# 2018-11-06 20:35:00 - adding contacts
 
 # store this into translations
 $translations['languages'][] = array(
@@ -20,6 +21,9 @@ $translations['languages'][] = array(
     array('Balance', 'Balans'),
     array('Changes', 'Förändringar'),
     array('City', 'Postort'),
+    array('Company', 'Bolag'),
+    array('Contact', 'Kontakt'),
+    array('Contacts', 'Kontakter'),
     array('Cost', 'Kostnad'),
     array('Cost, change', 'Kostnad, förändring'),
     array('Costs', 'Kostnader'),
@@ -32,6 +36,7 @@ $translations['languages'][] = array(
     array('Debt history', 'Skuldhistorik'),
     array('Debtor', 'Gäldenär'),
     array('Debug', 'Avlusning'),
+    array('Delete', 'Radera'),
     array('Due date', 'Förfallodatum'),
     array('E-mail log', 'E-postlogg'),
     array('E-mail', 'E-post'),
@@ -62,6 +67,7 @@ $translations['languages'][] = array(
     array('Name', 'Namn'),
     array('National interest rate', 'Nationell referensränta'),
     array('New balance row', 'Ny balansrad'),
+    array('New contact', 'Ny kontakt'),
     array('New debtor', 'Ny gäldenär'),
     array('New property', 'Ny egenskap'),
     array('New row', 'Ny rad'),
@@ -83,6 +89,7 @@ $translations['languages'][] = array(
     array('Status', 'Status'),
     array('Template', 'Mall'),
     array('This page shows balance changes.', 'Denna sida visar införda balansförändringar.'),
+    array('This page shows contacts.', 'Denna sida visar kontakter.'),
     array('This page shows debt history.', 'Denna sida visar skuldhistorik.'),
     array('This page shows how a mail would look like if it was sent on', 'Detta är ett mail så som det skulle sett ut om det avsändes'),
     array('This page shows properties that affect templates.', 'Denna sida visar egenskaper som påverkar mallar.'),

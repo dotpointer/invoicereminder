@@ -19,6 +19,21 @@ CREATE DATABASE IF NOT EXISTS `invoicereminder`;
 
 USE `invoicereminder`
 
+CREATE TABLE `invoicereminder_contacts` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `name` tinytext NOT NULL,
+  `company` tinytext NOT NULL,
+  `address` tinytext NOT NULL,
+  `zipcode` tinytext NOT NULL,
+  `city` tinytext NOT NULL,
+  `orgno` tinytext NOT NULL,
+  `email` tinytext NOT NULL,
+  `email_bcc` tinytext NOT NULL,
+  `created` datetime NOT NULL,
+  `updated` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) DEFAULT CHARSET=utf8;
+
 --
 -- Table structure for table `invoicereminder_balance`
 --
@@ -28,7 +43,7 @@ DROP TABLE IF EXISTS `invoicereminder_balance`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `invoicereminder_balance` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `id_debtors` int(11) NOT NULL DEFAULT '0',
+  `id_debts` int(11) NOT NULL DEFAULT '0',
   `type` int(11) NOT NULL DEFAULT '0',
   `payment` float NOT NULL DEFAULT '0',
   `amount` float NOT NULL DEFAULT '0',
@@ -42,14 +57,16 @@ CREATE TABLE `invoicereminder_balance` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `invoicereminder_debtors`
+-- Table structure for table `invoicereminder_debts`
 --
 
-DROP TABLE IF EXISTS `invoicereminder_debtors`;
+DROP TABLE IF EXISTS `invoicereminder_debts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `invoicereminder_debtors` (
+CREATE TABLE `invoicereminder_debts` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_contacts_creditor` bigint(20) NOT NULL DEFAULT '0',
+  `id_contacts_debtor` bigint(20) NOT NULL DEFAULT '0',
   `invoicenumber` int(11) NOT NULL,
   `name` tinytext NOT NULL,
   `address` tinytext NOT NULL,
@@ -85,7 +102,7 @@ DROP TABLE IF EXISTS `invoicereminder_log`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `invoicereminder_log` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `id_debtors` int(11) NOT NULL DEFAULT '0',
+  `id_debts` int(11) NOT NULL DEFAULT '0',
   `message` text NOT NULL,
   `type` int(11) NOT NULL,
   `created` datetime NOT NULL,

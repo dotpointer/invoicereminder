@@ -17,6 +17,8 @@
   # 2018-08-08 20:31:00 - adding balance
   # 2018-08-08 17:04:00 - adding balance
   # 2018-08-08 17:18:00 - renaming properties table
+  # 2018-11-06 20:35:00 - adding contacts
+  # 2018-11-06 21:48:00 - renaming table and columns
 
   require_once('include/functions.php');
 
@@ -36,7 +38,10 @@
   $email_bcc = isset($_REQUEST['email_bcc']) ? $_REQUEST['email_bcc'] : false;
   $happened = isset($_REQUEST['happened']) ? $_REQUEST['happened'] : false;
   $id_balance = isset($_REQUEST['id_balance']) ? $_REQUEST['id_balance'] : false;
-  $id_debtors = isset($_REQUEST['id_debtors']) ? $_REQUEST['id_debtors'] : false;
+  $id_contacts = isset($_REQUEST['id_contacts']) ? $_REQUEST['id_contacts'] : false;
+  $id_contacts_creditor = isset($_REQUEST['id_contacts_creditor']) ? $_REQUEST['id_contacts_creditor'] : false;
+  $id_contacts_debtor = isset($_REQUEST['id_contacts_debtor']) ? $_REQUEST['id_contacts_debtor'] : false;
+  $id_debts = isset($_REQUEST['id_debts']) ? $_REQUEST['id_debts'] : false;
   $id_properties = isset($_REQUEST['id_properties']) ? $_REQUEST['id_properties'] : false;
   $id_templates = isset($_REQUEST['id_templates']) ? $_REQUEST['id_templates'] : false;
   $invoicedate = isset($_REQUEST['invoicedate']) ? $_REQUEST['invoicedate'] : false;
@@ -44,6 +49,7 @@
   $last_reminder = isset($_REQUEST['last_reminder']) ? $_REQUEST['last_reminder'] : false;
   $message = isset($_REQUEST['message']) ? $_REQUEST['message'] : false;
   $name = isset($_REQUEST['name']) ? $_REQUEST['name'] : false;
+  $company = isset($_REQUEST['company']) ? $_REQUEST['company'] : false;
   $onlychanges = isset($_REQUEST['onlychanges']) ? $_REQUEST['onlychanges'] : false;
   $orgno = isset($_REQUEST['orgno']) ? $_REQUEST['orgno'] : false;
   $payment = isset($_REQUEST['payment']) ? $_REQUEST['payment'] : false;
@@ -73,7 +79,7 @@
       # new balance
       if (!$id_balance) {
         $iu['created'] = date('Y-m-d H:i:s');
-        $iu['id_debtors'] = $id_debtors;
+        $iu['id_debts'] = $id_debts;
         $iu = dbpia($link, $iu);
         $sql = '
           INSERT INTO invoicereminder_balance ('.
@@ -100,11 +106,59 @@
         die(1);
       }
 
-      header('Location: ?view=balance&id_debtors='.$id_debtors);
+      header('Location: ?view=balance&id_debts='.$id_debts);
+      die();
+    case 'insert_update_contact':
+
+      $iu = array(
+        'address' => $address,
+        'city' => $city,
+        'company' => $company,
+        'email' => $email,
+        'email_bcc' => $email_bcc,
+        'name' => $name,
+        'orgno' => $orgno,
+        'updated' => date('Y-m-d H:i:s'),
+        'zipcode' => $zipcode
+      );
+
+      # new contact
+      if (!$id_contacts) {
+
+        $iu['created'] = date('Y-m-d H:i:s');
+        $iu = dbpia($link, $iu);
+        $sql = '
+          INSERT INTO invoicereminder_contacts ('.
+            implode(', ', array_keys($iu)).
+          ') VALUES('.
+            implode(', ', $iu).
+          ')';
+      # update contact
+      } else {
+        $iu = dbpua($link, $iu);
+        $sql = '
+          UPDATE
+            invoicereminder_contacts
+          SET
+            '.implode(', ', $iu).'
+          WHERE
+            id="'.dbres($link, $id_contacts).'"
+          ';
+      }
+
+      $r = db_query($link, $sql);
+      if ($r === false) {
+        cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+        die(1);
+      }
+
+      header('Location: ?view=contacts');
       die();
     case 'insert_update_debtor':
 
       $iu = array(
+        'id_contacts_debtor' => $id_contacts_debtor,
+        'id_contacts_creditor' => $id_contacts_creditor,
         'address' => $address,
         'amount' => $amount,
         'city' => $city,
@@ -127,12 +181,12 @@
       );
 
       # new debtor
-      if (!$id_debtors) {
+      if (!$id_debts) {
 
         $iu['created'] = date('Y-m-d H:i:s');
         $iu = dbpia($link, $iu);
         $sql = '
-          INSERT INTO invoicereminder_debtors ('.
+          INSERT INTO invoicereminder_debts ('.
             implode(', ', array_keys($iu)).
           ') VALUES('.
             implode(', ', $iu).
@@ -142,11 +196,11 @@
         $iu = dbpua($link, $iu);
         $sql = '
           UPDATE
-            invoicereminder_debtors
+            invoicereminder_debts
           SET
             '.implode(', ', $iu).'
           WHERE
-            id="'.dbres($link, $id_debtors).'"
+            id="'.dbres($link, $id_debts).'"
           ';
       }
 
@@ -223,8 +277,8 @@
       }
 
       # new property
-      if (!$id_debtors) {
-        echo t('Missing').' id_debtors';
+      if (!$id_debts) {
+        echo t('Missing').' id_debts';
         die();
       # update property
       }
@@ -233,7 +287,6 @@
       $sql = '
         DELETE FROM
           invoicereminder_balance
-          '.implode(', ', $iu).'
         WHERE
           id="'.dbres($link, $id_balance).'"
         ';
@@ -244,7 +297,30 @@
         die(1);
       }
 
-      header('Location: ?view=balance&id_debtors='.$id_debtors);
+      header('Location: ?view=balance&id_debts='.$id_debts);
+      die();
+    case 'delete_contact':
+
+      if (!$id_contacts) {
+        echo t('Missing').' id_contacts';
+        die();
+      }
+
+      $iu = dbpua($link, $iu);
+      $sql = '
+        DELETE FROM
+          invoicereminder_contacts
+        WHERE
+          id="'.dbres($link, $id_contact).'"
+        ';
+
+      $r = db_query($link, $sql);
+      if ($r === false) {
+        cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+        die(1);
+      }
+
+      header('Location: ?view=contact&id_contacts='.$id_contacts);
       die();
     case 'delete_property':
 
@@ -260,7 +336,6 @@
       $sql = '
         DELETE FROM
           invoicereminder_properties
-          '.implode(', ', $iu).'
         WHERE
           id="'.dbres($link, $id_properties).'"
         ';
@@ -293,7 +368,7 @@
         SELECT
           *
         FROM
-          invoicereminder_debtors
+          invoicereminder_debts
         ';
       $debtors = db_query($link, $sql);
 
@@ -305,15 +380,15 @@
 
     case 'balance':
       # get the debtor
-      if ($id_debtors) {
+      if ($id_debts) {
         # find the debtor
         $sql = '
           SELECT
             *
           FROM
-            invoicereminder_debtors
+            invoicereminder_debts
           WHERE
-            id="'.dbres($link, $id_debtors).'"
+            id="'.dbres($link, $id_debts).'"
           ';
         $debtors = db_query($link, $sql);
         if ($debtors === false) {
@@ -335,7 +410,7 @@
           *
         FROM
           invoicereminder_balance
-        WHERE id_debtors="'.dbres($link, $id_debtors).'"
+        WHERE id_debts="'.dbres($link, $id_debts).'"
         ORDER BY
           happened ASC
         ';
@@ -344,6 +419,17 @@
         cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
         die(1);
       }
+      break;
+    case 'contacts':
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_contacts
+        ORDER BY
+          name
+        ';
+      $contacts = db_query($link, $sql);
       break;
 
     case 'edit_balance':
@@ -377,18 +463,18 @@
         $balance = false;
       }
 
-      $id_debtors = is_array($balance) ? $balance['id_debtors'] : $id_debtors;
+      $id_debts = is_array($balance) ? $balance['id_debts'] : $id_debts;
 
       # get the debtor
-      if ($id_debtors) {
+      if ($id_debts) {
         # find the debtor
         $sql = '
           SELECT
             *
           FROM
-            invoicereminder_debtors
+            invoicereminder_debts
           WHERE
-            id="'.dbres($link, $id_debtors).'"
+            id="'.dbres($link, $id_debts).'"
           ';
         $debtors = db_query($link, $sql);
         if ($debtors === false) {
@@ -405,13 +491,71 @@
         }
 
       } else {
-        echo 'Saknar id_debtors';
+        echo 'Saknar id_debts';
         die();
         $debtor = false;
       }
       break;
+    case 'edit_contact':
 
+      # find all template files
+      $templatefiles = scandir(TEMPLATE_DIR);
+
+      # filter so all text files are left
+      $temp = array();
+      foreach ($templatefiles as $templatefile) {
+        if (substr(strtolower($templatefile), -4) !== '.txt') {
+          continue;
+        }
+        $temp[] = $templatefile;
+      }
+      $templatefiles = $temp;
+
+      # was there a contact requested?
+      if ($id_contacts) {
+        # find the contact
+        $sql = '
+          SELECT
+            *
+          FROM
+            invoicereminder_contacts
+          WHERE
+            id="'.dbres($link, $id_contacts).'"
+          ';
+        $contacts = db_query($link, $sql);
+        if ($contacts === false) {
+          cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+          die(1);
+        }
+
+        # was there a contact found?
+        if (count($contacts)) {
+          # then take that
+          $contact = reset($contacts);
+        } else {
+          $contact = false;
+        }
+
+      } else {
+        $contact = false;
+      }
+      break;
     case 'edit_debtor':
+
+      # find all contacts
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_contacts
+        ORDER BY
+          name
+        ';
+      $contacts = db_query($link, $sql);
+      if ($contacts === false) {
+        cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+        die(1);
+      }
 
       # find all template files
       $templatefiles = scandir(TEMPLATE_DIR);
@@ -427,15 +571,15 @@
       $templatefiles = $temp;
 
       # was there a debtor requested?
-      if ($id_debtors) {
+      if ($id_debts) {
         # find the debtor
         $sql = '
           SELECT
             *
           FROM
-            invoicereminder_debtors
+            invoicereminder_debts
           WHERE
-            id="'.dbres($link, $id_debtors).'"
+            id="'.dbres($link, $id_debts).'"
           ';
         $debtors = db_query($link, $sql);
         if ($debtors === false) {
@@ -526,15 +670,15 @@
     case 'history':
 
       # get the debtor
-      if ($id_debtors) {
+      if ($id_debts) {
         # find the debtor
         $sql = '
           SELECT
             *
           FROM
-            invoicereminder_debtors
+            invoicereminder_debts
           WHERE
-            id="'.dbres($link, $id_debtors).'"
+            id="'.dbres($link, $id_debts).'"
           ';
         $debtors = db_query($link, $sql);
         if ($debtors === false) {
@@ -551,7 +695,7 @@
         }
       }
 
-      $balance_history = balance_history($link, $id_debtors);
+      $balance_history = balance_history($link, $id_debts);
       break;
 
     case 'log':
@@ -560,7 +704,7 @@
           *
         FROM
           invoicereminder_log
-        '.($id_debtors !== false ? 'WHERE id_debtors="'.dbres($link, $id_debtors).'"' : '').'
+        '.($id_debts !== false ? 'WHERE id_debts="'.dbres($link, $id_debts).'"' : '').'
         ORDER BY
           created DESC
         LIMIT 25
@@ -593,7 +737,7 @@
       }
       $templates = $tmp;
 
-      $mail = compose_mail($link, $id_debtors, $templatefile, true, $dateto);
+      $mail = compose_mail($link, $id_debts, $templatefile, true, $dateto);
       break;
 
     case 'referencerate':
@@ -635,6 +779,7 @@
   <li><a href="?view=log"><?php echo t('Event log'); ?></a></li>
   <li><a href="?view=referencerate"><?php echo t('Reference rate'); ?></a></li>
   <li><a href="?view=properties"><?php echo t('Properties'); ?></a></li>
+  <li><a href="?view=contacts"><?php echo t('Contacts'); ?></a></li>
 </ul>
 <?php
   # find out what view to display
@@ -719,13 +864,13 @@
       <td><?php echo $debtor['day_of_month']; ?></td>
       <td><?php echo $debtor['template']; ?></td>
       <td>
-        <a href="?view=edit_debtor&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('Edit'); ?></a>
+        <a href="?view=edit_debtor&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('Edit'); ?></a>
         <br>
-        <a href="?view=log&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('E-mail log'); ?></a>
+        <a href="?view=log&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('E-mail log'); ?></a>
         <br>
-        <a href="?view=balance&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('Balance'); ?></a>
+        <a href="?view=balance&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('Balance'); ?></a>
         <br>
-        <a href="?view=history&amp;id_debtors=<?php echo $debtor['id'] ?>"><?php echo t('History'); ?></a>
+        <a href="?view=history&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('History'); ?></a>
       </td>
     </tr>
 <?php
@@ -742,8 +887,8 @@
     <?php echo t('This page shows balance changes.'); ?>
   </p>
   <p>
-    <a href="?view=edit_balance&amp;id_debtors=<?php echo $id_debtors?>"><?php echo t('New row'); ?></a> /
-    <a href="?view=history&amp;id_debtors=<?php echo $id_debtors?>"><?php echo t('Debt history'); ?></a>
+    <a href="?view=edit_balance&amp;id_debts=<?php echo $id_debts?>"><?php echo t('New row'); ?></a> /
+    <a href="?view=history&amp;id_debts=<?php echo $id_debts?>"><?php echo t('Debt history'); ?></a>
   </p>
   <table border="1">
     <tr>
@@ -771,8 +916,64 @@
       </td>
       <td><?php echo $row['message']; ?></td>
       <td>
-        <a href="?view=edit_balance&amp;id_balance=<?php echo $row['id']?>&amp;id_debtors=<?php echo $id_debtors; ?>"><?php echo t('Edit'); ?></a>
-        <a href="?action=delete_balance&amp;id_balance=<?php echo $row['id']?>&amp;id_debtors=<?php echo $id_debtors; ?>"><?php echo t('Delete') ?></a>
+        <a href="?view=edit_balance&amp;id_balance=<?php echo $row['id']?>&amp;id_debts=<?php echo $id_debts; ?>"><?php echo t('Edit'); ?></a>
+        <a href="?action=delete_balance&amp;id_balance=<?php echo $row['id']?>&amp;id_debts=<?php echo $id_debts; ?>"><?php echo t('Delete') ?></a>
+      </td>
+    </tr>
+<?php
+      }
+?>
+  </table>
+<?php
+    case 'contacts':
+?>
+  <h2><?php echo t('Contacts'); ?></h2>
+  <p><?php echo t('This page shows contacts.') ?>
+  <p>
+    <a href="?view=edit_contact"><?php echo t('New contact'); ?></a>
+  </p>
+  <table border="1">
+    <tr>
+      <th><?php echo t('Name'); ?></th>
+      <th><?php echo t('Company'); ?></th>
+      <th><?php echo t('Address'); ?></th>
+      <th><?php echo t('ZIP-code'); ?></th>
+      <th><?php echo t('City'); ?></th>
+      <th><?php echo t('Organisation number'); ?></th>
+      <th><?php echo t('E-mail'); ?></th>
+      <th><?php echo t('Manage'); ?></th>
+    </tr>
+<?php
+      # walk debtors
+      foreach ($contacts as $k => $row) {
+?>
+    <tr>
+      <td>
+        <?php echo $row['name'] ?>
+      </td>
+      <td>
+        <?php echo $row['company'] ?>
+      </td>
+      <td>
+        <?php echo $row['address'] ?>
+      </td>
+      <td>
+        <?php echo $row['zipcode'] ?>
+      </td>
+      <td>
+        <?php echo $row['city'] ?>
+      </td>
+      <td>
+        <?php echo $row['orgno'] ?>
+      </td>
+      <td>
+        <?php echo $row['email'] ?>
+        <br>
+        <?php echo $row['email_bcc'] ?>
+      </td>
+      <td>
+        <a href="?view=edit_contact&amp;id_contacts=<?php echo $row['id']?>"><?php echo t('Edit') ?></a>
+        <a href="?action=delete_contact&amp;id_contacts=<?php echo $row['id']?>"><?php echo t('Delete') ?></a>
       </td>
     </tr>
 <?php
@@ -791,7 +992,7 @@
 
       <label><?php echo t('Debtor'); ?>:</label><br>
       <span class="value"><?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : 'Ingen' ?> (#<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>)</span>
-      <input type="hidden" name="id_debtors" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <input type="hidden" name="id_debts" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
       <br>
 
       <label><?php echo t('Row type'); ?>:</label><br>
@@ -808,7 +1009,7 @@
 
       <label><?php echo t('Debtor'); ?>:</label><br>
       <span class="value"><?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : 'Ingen' ?> (#<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>)</span>
-      <input type="hidden" name="id_debtors" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <input type="hidden" name="id_debts" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
       <br>
 
       <label><?php echo t('Debt amount, change'); ?>:</label><br>
@@ -846,6 +1047,58 @@
   </form>
 <?php
       break;
+    case 'edit_contact':
+?>
+  <h2><?php echo t('Edit contact'); ?></h2>
+  <form action="?" method="post">
+    <fieldset>
+
+      <input type="hidden" name="action" value="insert_update_contact">
+
+      <label>#:</label><br>
+      <span class="value"><?php echo is_array($contact) && isset($contact['id']) ? $contact['id'] : t('New contact') ?></span>
+      <input type="hidden" name="id_contacts" value="<?php echo is_array($contact) && isset($contact['id']) ? $contact['id'] : '' ?>">
+      <br>
+
+      <label><?php echo t('Name'); ?>:</label><br>
+      <input type="text" name="name" value="<?php echo is_array($contact) && isset($contact['name']) ? $contact['name'] : '' ?>">
+      <br>
+
+      <label><?php echo t('Company'); ?>:</label><br>
+      <input type="text" name="company" value="<?php echo is_array($contact) && isset($contact['company']) ? $contact['company'] : '' ?>">
+      <br>
+
+      <label><?php echo t('Address'); ?>:</label><br>
+      <input type="text" name="address" value="<?php echo is_array($contact) && isset($contact['address']) ? $contact['address'] : '' ?>">
+      <br>
+
+      <label><?php echo t('Postal code'); ?>:</label><br>
+      <input type="text" name="zipcode" value="<?php echo is_array($contact) && isset($contact['zipcode']) ? $contact['zipcode'] : '' ?>">
+      <br>
+
+
+      <label><?php echo t('City'); ?>:</label><br>
+      <input type="text" name="city" value="<?php echo is_array($contact) && isset($contact['city']) ? $contact['city'] : '' ?>">
+      <br>
+
+      <label><?php echo t('Organisation-/social security number'); ?>:</label><br>
+      <input type="text" name="orgno" value="<?php echo is_array($contact) && isset($contact['orgno']) ? $contact['orgno'] : '' ?>">
+      <br>
+
+      <label><?php echo t('E-mail, contact'); ?>:</label><br>
+      <input type="text" name="email" value="<?php echo is_array($contact) && isset($contact['email']) ? $contact['email'] : '' ?>">
+      <br>
+
+      <label><?php echo t('E-mail, hidden carbon copy'); ?>:</label><br>
+      <input type="text" name="email_bcc" value="<?php echo is_array($contact) && isset($contact['email_bcc']) ? $contact['email_bcc'] : '' ?>">
+      <br>
+
+      <input type="submit" name="submit_edit_contact" value="<?php echo t('Save'); ?>">
+      <br>
+    </fieldset>
+  </form>
+<?php
+      break;
     case 'edit_debtor':
 ?>
   <h2><?php echo t('Edit debtor'); ?></h2>
@@ -856,7 +1109,47 @@
 
       <label>#:</label><br>
       <span class="value"><?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : t('New debtor') ?></span>
-      <input type="hidden" name="id_debtors" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <input type="hidden" name="id_debts" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <br>
+
+      <label><?php echo t('Creditor'); ?>:</label><br>
+      <select name="id_contacts_creditor">
+        <option value="0"><?php echo 'None' ?></option>
+<?php
+        foreach ($contacts as $contact) {
+          $names = array();
+          if (strlen($contact['name'])) {
+            $names[] = $contact['name'];
+          }
+          if (strlen($contact['company'])) {
+            $names[] = $contact['company'];
+          }
+?>
+        <option value="<?php echo $contact['id'] ?>"<?php echo is_array($debtor) && isset($debtor['id_contacts_creditor']) && $debtor['id_contacts_creditor'] === $contact['id'] ? ' selected' : '' ?>>
+          <?php echo implode(', ', $names); ?>
+        </option>
+        <?php } ?>
+      </select>
+      <br>
+
+      <label><?php echo t('Debtor'); ?>:</label><br>
+      <select name="id_contacts_debtor">
+        <option value="0"><?php echo 'None' ?></option>
+<?php
+        foreach ($contacts as $contact) {
+          $names = array();
+          if (strlen($contact['name'])) {
+            $names[] = $contact['name'];
+          }
+          if (strlen($contact['company'])) {
+            $names[] = $contact['company'];
+          }
+?>
+        <option value="<?php echo $contact['id'] ?>"<?php echo is_array($debtor) && isset($debtor['id_contacts_debtor']) && $debtor['id_contacts_debtor'] === $contact['id'] ? ' selected' : '' ?>>
+          <?php echo implode(', ', $names); ?>
+        </option>
+        <?php } ?>
+      </select>
       <br>
 
       <label><?php echo t('Invoice number'); ?>:</label><br>
@@ -969,11 +1262,11 @@
   </p>
   <p>
     Visa:
-    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=1"><?php echo t('Changes'); ?></a>
+    <a href="?view=history&amp;id_debts=<?=$id_debts?>&amp;onlychanges=1"><?php echo t('Changes'); ?></a>
     /
-    <a href="?view=history&amp;id_debtors=<?=$id_debtors?>&amp;onlychanges=0"><?php echo t('Everything'); ?></a>
+    <a href="?view=history&amp;id_debts=<?=$id_debts?>&amp;onlychanges=0"><?php echo t('Everything'); ?></a>
     /
-    <a href="?view=balance&amp;id_debtors=<?=$id_debtors?>"><?php echo t('Balance'); ?></a>
+    <a href="?view=balance&amp;id_debts=<?=$id_debts?>"><?php echo t('Balance'); ?></a>
   </p>
   <table border="1">
     <tr>
@@ -1087,7 +1380,7 @@
       <td><?php echo $row['message'] ?></td>
       <td><?php echo $row['mails_sent'] ?></td>
       <td>
-        <a href="?view=mail&amp;id_debtors=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
+        <a href="?view=mail&amp;id_debts=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
       </td>
     </tr>
 <?php
@@ -1146,7 +1439,7 @@
 
 <form action="?" method="get">
   <fieldset>
-    <input type="hidden" name="id_debtors" value="<?php echo $id_debtors; ?>">
+    <input type="hidden" name="id_debts" value="<?php echo $id_debts; ?>">
     <input type="hidden" name="view" value="mail">
     <input type="hidden" name="dateto" value="<?php echo $dateto?>">
 

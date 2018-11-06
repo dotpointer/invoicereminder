@@ -3,7 +3,7 @@
   # 2017-02-14 17:31:52 - initial version
   # 2017-02-17 00:54:23 - updating
   # 2017-02-17 01:20:24 - bugfix working dir
-  # 2017-02-17 23:57:27 - adding id_debtors to log
+  # 2017-02-17 23:57:27 - adding id_debts to log
   # 2017-02-25 21:42:42 - setting mail address to global one
   # 2017-05-02 11:08:25 - bugfix, adding reminder cost
   # 2017-05-02 11:13:36 - removing invoice number from required values
@@ -15,6 +15,7 @@
   # 2018-07-31 00:00:00 - adding balance
   # 2018-08-01 18:50:00 - adding balance
   # 2018-08-08 17:05:00 - adding balance
+  # 2018-11-06 21:48:00 - renaming table and columns
 
   require_once('include/functions.php');
 
@@ -135,7 +136,7 @@ Invoice reminder application
 
       $sql = '
         UPDATE
-          invoicereminder_debtors
+          invoicereminder_debts
         SET
           status="'.dbres($link, DEBTOR_STATUS_ACTIVE).'"
         WHERE
@@ -172,7 +173,7 @@ Invoice reminder application
         SELECT
           id, email_bcc
         FROM
-          invoicereminder_debtors
+          invoicereminder_debts
         WHERE
           status='.dbres($link, DEBTOR_STATUS_ACTIVE).'
           AND
@@ -248,7 +249,7 @@ Invoice reminder application
           # update last reminder on this debtor
           $sql = '
             UPDATE
-              invoicereminder_debtors
+              invoicereminder_debts
             SET
               updated="'.dbres($link, date('Y-m-d H:i:s')).'",
               last_reminder="'.dbres($link, date('Y-m-d H:i:s')).'",
@@ -280,7 +281,7 @@ Invoice reminder application
 
       $sql = '
         UPDATE
-          invoicereminder_debtors
+          invoicereminder_debts
         SET
           last_reminder="'.dbres($link, '1970-01-01 00:00:00').'"
         WHERE

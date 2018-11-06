@@ -20,6 +20,7 @@
   # 2018-08-08 17:04:00 - adding balance
   # 2018-08-08 17:18:00 - renaming properties table
   # 2018-08-08 17:43:00 - moving setup downwards to make verbosity constants available
+  # 2018-11-06 21:48:00 - renaming debts table and columns
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
@@ -159,7 +160,7 @@
     return $refrate;
   }
 
-  function get_balance_mails_sent($link, $id_debtors, $thisdate) {
+  function get_balance_mails_sent($link, $id_debts, $thisdate) {
     static $log = false;
 
     # init of static variable, done first run
@@ -170,7 +171,7 @@
         FROM
           invoicereminder_log
         WHERE
-          id_debtors='.dbres($link, $id_debtors).'
+          id_debts='.dbres($link, $id_debts).'
           AND
           type=2
         ORDER BY created
@@ -235,7 +236,7 @@
     return $message;
   }
 
-  function balance_history($link, $id_debtors, $parameters=false) {
+  function balance_history($link, $id_debts, $parameters=false) {
 
     $send_mail = true;
 
@@ -244,9 +245,9 @@
       SELECT
         *
       FROM
-        invoicereminder_debtors
+        invoicereminder_debts
       WHERE
-        id='.dbres($link, $id_debtors).'
+        id='.dbres($link, $id_debts).'
       LIMIT 1;
       ';
     cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
@@ -272,7 +273,7 @@
       FROM
         invoicereminder_balance
       WHERE
-        id_debtors='.dbres($link, $id_debtors).'
+        id_debts='.dbres($link, $id_debts).'
       ORDER BY happened
       ';
     $balance_history = db_query($link, $sql);
@@ -347,7 +348,7 @@
 
         # --- mails
         # find mail sendings
-        $mails_sent = get_balance_mails_sent($link, $id_debtors, $thisdate);
+        $mails_sent = get_balance_mails_sent($link, $id_debts, $thisdate);
         # --- payment
 
         # walk payments calculate to this day
@@ -529,15 +530,15 @@
     );
   }
 
-  function compose_mail($link, $id_debtors, $templatefile=false, $force=false, $dateto=false) {
+  function compose_mail($link, $id_debts, $templatefile=false, $force=false, $dateto=false) {
     # get all active debtors with active status and not reminded yet
     $sql = '
       SELECT
         *
       FROM
-        invoicereminder_debtors
+        invoicereminder_debts
       WHERE
-        id='.dbres($link, $id_debtors).'
+        id='.dbres($link, $id_debts).'
       ';
 
     cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
@@ -549,7 +550,7 @@
 
     # no debtor found?
     if (!count($debtors)) {
-      cl($link, VERBOSE_DEBUG, 'Debtor with id '.$id_debtors.' not found');
+      cl($link, VERBOSE_DEBUG, 'Debtor with id '.$id_debts.' not found');
       return false;
     }
 
@@ -800,7 +801,7 @@
   }
 
   # debug printing
-  function cl($link, $level, $s, $id_debtors=0) {
+  function cl($link, $level, $s, $id_debts=0) {
 
     global $config;
 
@@ -822,7 +823,7 @@
 
     # is verbosity on and level is enough?
     if ($config['main']['verbose'] && $config['main']['verbose'] >= $level) {
-      echo date('Y-m-d H:i:s').' '.$l.' #'.$id_debtors.' '.$s."\n";
+      echo date('Y-m-d H:i:s').' '.$l.' #'.$id_debts.' '.$s."\n";
     }
 
     # is loglevel on and level is enough - the try to append to log
@@ -835,7 +836,7 @@
       # log the error
       $iu = dbpia($link, array(
         'created' => date('Y-m-d H:i:s'),
-        'id_debtors' => $id_debtors,
+        'id_debts' => $id_debts,
         'message' => $s,
         'type' => $level
       ));
@@ -856,7 +857,7 @@
     # disable this debtor
     $sql = '
       UPDATE
-        invoicereminder_debtors
+        invoicereminder_debts
       SET
         status="'.dbres($link,DEBTOR_STATUS_ERROR).'",
         updated="'.dbres($link, date('Y-m-d H:i:s')).'"
@@ -953,7 +954,7 @@
     # disable this debtor
     $sql = '
       UPDATE
-        invoicereminder_debtors
+        invoicereminder_debts
       SET
           status="'.dbres($link, $status).'",
           updated="'.dbres($link, date('Y-m-d H:i:s')).'"
