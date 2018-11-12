@@ -17,6 +17,7 @@
   # 2018-08-08 17:05:00 - adding balance
   # 2018-11-06 21:48:00 - renaming table and columns
   # 2018-11-12 17:51:00 - separating debt and debtor
+  # 2018-11-12 19:27:00 - implementing contacts
 
   require_once('include/functions.php');
 
@@ -172,17 +173,19 @@ Invoice reminder application
       # get all active debts with active status and not reminded yet
       $sql = '
         SELECT
-          id, email_bcc
+          debts.id, debtors.email_bcc
         FROM
-          invoicereminder_debts
+          invoicereminder_debts AS debts
+          LEFT JOIN
+            invoicereminder_contacts AS debtors ON debts.id_contacts_debtor = debtors.id
         WHERE
-          status='.dbres($link, DEBT_STATUS_ACTIVE).'
+          debts.status='.dbres($link, DEBT_STATUS_ACTIVE).'
           AND
-          last_reminder <= timestampadd(day, -reminder_days,now())
+          debts.last_reminder <= timestampadd(debts.day, -debts.reminder_days,now())
           AND (
-            day_of_month = 0
+            debts.day_of_month = 0
             OR
-            DAYOFMONTH(NOW()) >= day_of_month
+            DAYOFMONTH(NOW()) >= debts.day_of_month
           )
         ';
 

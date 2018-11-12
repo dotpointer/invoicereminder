@@ -22,6 +22,7 @@
   # 2018-08-08 17:43:00 - moving setup downwards to make verbosity constants available
   # 2018-11-06 21:48:00 - renaming debts table and columns
   # 2018-11-12 17:51:00 - separating debt and debtor
+  # 2018-11-12 19:27:00 - implementing contacts
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
@@ -47,17 +48,9 @@
   require_once('setup.php');
 
   $available_properties = array(
-    '$CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$',
-    '$CREDITOR-BANK-ACCOUNT-NUMBER$',
-    '$CREDITOR-BANK-NAME$',
-    '$CREDITOR-CELLPHONE-NUMBER$',
-    '$CREDITOR-CITY$',
-    '$CREDITOR-COMPANY-NAME$',
-    '$CREDITOR-COUNTRY$',
-    '$CREDITOR-EMAIL$',
-    '$CREDITOR-NAME$',
-    '$CREDITOR-STREET$',
-    '$CREDITOR-ZIP-CODE$'
+    '$BANK-ACCOUNT-CLEARING-NUMBER-CREDITOR$',
+    '$BANK-ACCOUNT-NUMBER-CREDITOR$',
+    '$BANK-NAME-CREDITOR$'
   );
 
   require_once('base3.php');
@@ -535,11 +528,48 @@
     # get all active debts with active status and not reminded yet
     $sql = '
       SELECT
-        *
+        creditors.address AS address_creditor,
+        creditors.city AS city_creditor,
+        creditors.company AS company_creditor,
+        creditors.email AS email_creditor,
+        creditors.email_bcc AS email_bcc_creditor,
+        creditors.name AS name_creditor,
+        creditors.orgno AS orgno_creditor,
+        creditors.phonenumber AS phonenumber_creditor,
+        creditors.zipcode AS zipcode_creditor,
+        debtors.address AS address_debtor,
+        debtors.city AS city_debtor,
+        debtors.company AS company_debtor,
+        debtors.email AS email_debtor,
+        debtors.email_bcc AS email_bcc_debtor,
+        debtors.name AS name_debtor,
+        debtors.orgno AS orgno_debtor,
+        debtors.phonenumber AS phonenumber_debtor,
+        debtors.zipcode AS zipcode_debtor,
+        debts.amount,
+        debts.collectioncost,
+        debts.day_of_month,
+        debts.duedate,
+        debts.id,
+        debts.id_contacts_creditor AS id_creditor,
+        debts.id_contacts_debtor AS id_debtor,
+        debts.invoicedate,
+        debts.invoicenumber,
+        debts.last_reminder,
+        debts.mails_sent,
+        debts.percentage,
+        debts.reminder_days,
+        debts.remindercost,
+        debts.status,
+        debts.template
       FROM
-        invoicereminder_debts
+        invoicereminder_debts AS debts
+          LEFT JOIN
+            invoicereminder_contacts AS creditors ON debts.id_contacts_creditor = creditors.id
+          LEFT JOIN
+            invoicereminder_contacts AS debtors ON debts.id_contacts_debtor = debtors.id
       WHERE
-        id='.dbres($link, $id_debts).'
+        debts.id='.dbres($link, $id_debts).'
       ';
 
     cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
@@ -691,22 +721,32 @@
 
     # fill placeholders
     $placeholders = array(
-      '$ADDRESS$' => $debt['address'],
+      '$ADDRESS-CREDITOR$' => $debt['address_creditor'],
+      '$ADDRESS-DEBTOR$' => $debt['address_debtor'],
       '$AMOUNT-ACCRUED$' => money($lastrow['amount_accrued']),
-      '$CITY$' => $debt['city'],
+      '$CITY-CREDITOR$' => $debt['city_creditor'],
+      '$CITY-DEBTOR$' => $debt['city_debtor'],
+      '$COMPANY-NAME-CREDITOR$' => $debt['company_creditor'],
+      '$COMPANY-NAME-DEBTOR$' => $debt['company_debtor'],
       '$COST-ACCRUED$' => money($lastrow['cost_accrued']),
       '$DUE-DATE$' => $balance_history['special']['duedate'],
-      '$EMAIL$' => $debt['email'],
+      '$EMAIL-CREDITOR$' => $debt['email_creditor'],
+      '$EMAIL-DEBTOR$' => $debt['email_debtor'],
       '$INTEREST-ACCRUED$' => money($lastrow['interest_accrued']),
       '$INTEREST-DATE$' => $dateto ? $dateto : date('Y-m-d'),
       '$INTEREST-PER-DAY$' => money($lastrow['interest_this_day']),
       '$INVOICE-DATE$' => $debt['invoicedate'],
       '$INVOICE-NUMBER$' => $debt['invoicenumber'],
-      '$NAME$' => $debt['name'],
-      '$ORGNO$' => $debt['orgno'],
+      '$NAME-CREDITOR$' => $debt['name_creditor'],
+      '$NAME-DEBTOR$' => $debt['name_debtor'],
+      '$ORGNO-CREDITOR$' => $debt['orgno_creditor'],
+      '$ORGNO-DEBTOR$' => $debt['orgno_debtor'],
+      '$PHONE-NUMBER-CREDITOR$' => $debt['phonenumber_creditor'],
+      '$PHONE-NUMBER-DEBTOR$' => $debt['phonenumber_debtor'],
       '$RATE-ACCRUED$' => percentage(($lastrow['rate_accrued']) * 100, 2),
       '$TOTAL$' => money($lastrow['amount_accrued'] + $lastrow['interest_accrued'] + $lastrow['cost_accrued']),
-      '$ZIP-CODE$' => $debt['zipcode']
+      '$ZIP-CODE-CREDITOR' => $debt['zipcode_creditor'],
+      '$ZIP-CODE-DEBTOR$' => $debt['zipcode_debtor']
     );
 
     # complement with properties from database
@@ -769,9 +809,9 @@
     # $headers[] = 'Reply-To: '.MAIL_ADDRESS_FROM;
 
     # is there a bcc address supplied
-    if (strlen($debt['email_bcc'])) {
+    if (strlen($debt['email_bcc_debtor'])) {
       # then add the bcc header
-      $headers[] = 'Bcc: '.$debt['email_bcc'];
+      $headers[] = 'Bcc: '.$debt['email_bcc_debtor'];
     }
 
     cl(
@@ -782,7 +822,7 @@
         implode(
           str_repeat('-', 80)."\n",
           array(
-            'To: '.$debt['email']."\n".implode("\n", $headers)."\n",
+            'To: '.$debt['email_debtor']."\n".implode("\n", $headers)."\n",
             $subject."\n",
             $body
           )
@@ -795,7 +835,7 @@
       'headers' => $headers,
       'templatefile' => basename($templatefile),
       'templatefile_default' => basename($debt['template']),
-      'to' => $debt['email'],
+      'to' => $debt['email_debtor'],
       'subject' => $subject,
       'body' => $body
     );

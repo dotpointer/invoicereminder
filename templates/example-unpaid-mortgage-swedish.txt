@@ -1,7 +1,7 @@
 Påminnelse på skuld på obetalt lån, upplupen skuld: $TOTAL$ SEK
 ---
 Till gäldenär:
-$NAME$
+$NAME-DEBTOR$
 
 Detta är en påminnelse på skuld på obetald och förfallet lån ni tagit av mig.
 
@@ -18,12 +18,12 @@ Undvik ytterligare ränta genom att betala omedelbart idag.
 
 Betala in totalbeloppet $TOTAL$ på detta bankkonto:
 
-$CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$-$CREDITOR-BANK-ACCOUNT-NUMBER$ (där $CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$ är clearingnummerdelen)
-$CREDITOR-BANK-NAME$
+$BANK-ACCOUNT-CLEARING-NUMBER-CREDITOR$-$BANK-ACCOUNT-NUMBER-CREDITOR$ (där $BANK-ACCOUNT-CLEARING-NUMBER-CREDITOR$ är clearingnummerdelen)
+$BANK-NAME-CREDITOR$
 
-Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: $CREDITOR-CELLPHONE-NUMBER$.
+Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: $PHONE-NUMBER-CREDITOR$.
 
 Skriv namn som meddelande.
-Skicka om möjligt även ett mail till $CREDITOR-EMAIL$ när du betalat.
+Skicka om möjligt även ett mail till $EMAIL-CREDITOR$ när du betalat.
 
-$CREDITOR-NAME$
+$NAME-CREDITOR$

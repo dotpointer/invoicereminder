@@ -1,7 +1,7 @@
 Påminnelse på inkassokrav obetald faktura, upplupet belopp: $TOTAL$ SEK
 ---
 Till gäldenär:
-$NAME$
+$NAME-DEBTOR$
 
 Vi har noterat att ni har en obetald faktura hos oss som har förfallit och
 gått till inkasso. Detta är en påminnelse på inkassokravet vi sänt ut tidigare.
@@ -20,12 +20,12 @@ Notera att räntebeloppet ökar på skulden dagligen.
 Undvik ytterligare ränta genom att betala omedelbart idag.
 
 Betala in totalbeloppet $TOTAL$ på detta bankkonto:
-$CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$-$CREDITOR-BANK-ACCOUNT-NUMBER$ (där $CREDITOR-BANK-ACCOUNT-CLEARING-NUMBER$ är clearingnummerdelen)
-$CREDITOR-BANK-NAME$
+$BANK-ACCOUNT-CLEARING-NUMBER-CREDITOR$-$BANK-ACCOUNT-NUMBER-CREDITOR$ (där $BANK-ACCOUNT-CLEARING-NUMBER-CREDITOR$ är clearingnummerdelen)
+$BANK-NAME-CREDITOR$
 
-Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: $CREDITOR-CELLPHONE-NUMBER$.
+Alternativt swisha totalbeloppet $TOTAL$ till telefonnummer: $PHONE-NUMBER-CREDITOR$.
 
 Skriv fakturanummer eller namn som meddelande.
-Skicka om möjligt även ett mail till $CREDITOR-EMAIL$ när du betalat.
+Skicka om möjligt även ett mail till $EMAIL-CREDITOR$ när du betalat.
 
-$CREDITOR-COMPANY-NAME$
+$COMPANY-NAME-CREDITOR$

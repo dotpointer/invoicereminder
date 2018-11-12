@@ -29,6 +29,7 @@ CREATE TABLE `invoicereminder_contacts` (
   `orgno` tinytext NOT NULL,
   `email` tinytext NOT NULL,
   `email_bcc` tinytext NOT NULL,
+  `phonenumber` tinytext NOT NULL,
   `created` datetime NOT NULL,
   `updated` datetime NOT NULL,
   PRIMARY KEY (`id`)

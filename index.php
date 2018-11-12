@@ -20,6 +20,7 @@
   # 2018-11-06 20:35:00 - adding contacts
   # 2018-11-06 21:48:00 - renaming table and columns
   # 2018-11-12 17:51:00 - separating debt and debtor
+  # 2018-11-12 19:27:00 - implementing contacts
 
   require_once('include/functions.php');
 
@@ -55,6 +56,7 @@
   $orgno = isset($_REQUEST['orgno']) ? $_REQUEST['orgno'] : false;
   $payment = isset($_REQUEST['payment']) ? $_REQUEST['payment'] : false;
   $percentage = isset($_REQUEST['percentage']) ? $_REQUEST['percentage'] : false;
+  $phonenumber = isset($_REQUEST['phonenumber']) ? $_REQUEST['phonenumber'] : false;
   $property = isset($_REQUEST['property']) ? $_REQUEST['property'] : false;
   $referencerate = isset($_REQUEST['$referencerate']) ? $_REQUEST['$referencerate'] : false;
   $reminder_days = isset($_REQUEST['reminder_days']) ? $_REQUEST['reminder_days'] : false;
@@ -119,6 +121,7 @@
         'email_bcc' => $email_bcc,
         'name' => $name,
         'orgno' => $orgno,
+        'phonenumber' => $phonenumber,
         'updated' => date('Y-m-d H:i:s'),
         'zipcode' => $zipcode
       );
@@ -160,25 +163,18 @@
       $iu = array(
         'id_contacts_debtor' => $id_contacts_debtor,
         'id_contacts_creditor' => $id_contacts_creditor,
-        'address' => $address,
         'amount' => $amount,
-        'city' => $city,
         'collectioncost' => $collectioncost,
         'day_of_month' => $day_of_month,
-        'email' => $email,
-        'email_bcc' => $email_bcc,
         'invoicedate' => $invoicedate,
         'invoicenumber' => $invoicenumber,
         'last_reminder' => $last_reminder,
-        'name' => $name,
-        'orgno' => $orgno,
         'percentage' => (float)str_replace(',', '.', $percentage) / 100,
         'reminder_days' => $reminder_days,
         'remindercost' => $remindercost,
         'status' => $status,
         'template' => $template,
-        'updated' => date('Y-m-d H:i:s'),
-        'zipcode' => $zipcode
+        'updated' => date('Y-m-d H:i:s')
       );
 
       # new debt
@@ -367,9 +363,38 @@
       # get debts
       $sql = '
         SELECT
-          *
+          creditors.name AS name_creditor,
+          creditors.phonenumber AS phonenumber_creditor,
+          debtors.address AS address_debtor,
+          debtors.city AS city_debtor,
+          debtors.email AS email_debtor,
+          debtors.email_bcc AS email_bcc_debtor,
+          debtors.name AS name_debtor,
+          debtors.orgno AS orgno_debtor,
+          debtors.phonenumber AS phonenumber_debtor,
+          debtors.zipcode AS zipcode_debtor,
+          debts.amount,
+          debts.collectioncost,
+          debts.day_of_month,
+          debts.duedate,
+          debts.id,
+          debts.id_contacts_creditor AS id_creditor,
+          debts.id_contacts_debtor AS id_debtor,
+          debts.invoicedate,
+          debts.invoicenumber,
+          debts.last_reminder,
+          debts.mails_sent,
+          debts.percentage,
+          debts.reminder_days,
+          debts.remindercost,
+          debts.status,
+          debts.template
         FROM
-          invoicereminder_debts
+          invoicereminder_debts AS debts
+          LEFT JOIN
+            invoicereminder_contacts AS creditors ON debts.id_contacts_creditor = creditors.id
+          LEFT JOIN
+            invoicereminder_contacts AS debtors ON debts.id_contacts_debtor = debtors.id
         ';
       $debts = db_query($link, $sql);
 
@@ -541,7 +566,7 @@
         $contact = false;
       }
       break;
-    case 'edit_contact':
+    case 'edit_debt':
 
       # find all contacts
       $sql = '
@@ -599,6 +624,7 @@
       } else {
         $debt = false;
       }
+
       break;
     case 'edit_property':
 
@@ -815,10 +841,12 @@
       <td><?php echo $debt['id']; ?></td>
       <td><?php echo $debt['invoicenumber']; ?></td>
       <td>
-        <?php echo $debt['name']; ?><br>
-        <?php echo $debt['address']; ?><br>
-        <?php echo $debt['zipcode']; ?> <?php echo $debt['city']; ?><br>
-        <?php echo $debt['orgno']; ?>
+        <?php echo $debt['name_debtor']; ?><br>
+        <?php echo $debt['address_debtor']; ?><br>
+        <?php echo $debt['zipcode_debtor']; ?> <?php echo $debt['city_debtor']; ?><br>
+        <?php echo $debt['orgno_debtor']; ?><br>
+        <?php echo $debt['phonenumber_debtor']; ?>
+
       </td>
       <td class="amount">
         <?php echo money($bend['amount_accrued']); ?> kr
@@ -840,8 +868,8 @@
         (<?php echo $debt['balance_history']['special']['date_last_year_end'] ?>: <?php echo money($debt['balance_history']['special']['total_last_year_end']) ?> kr)
       </td>
       <td>
-        <?php echo $debt['email']; ?><br>
-        (<?php echo $debt['email_bcc']; ?>)
+        <?php echo $debt['email_debtor']; ?><br>
+        (<?php echo $debt['email_bcc_debtor']; ?>)
       </td>
       <td><?php echo $debt['balance_history']['special']['duedate']; ?></td>
       <td><?php
@@ -974,6 +1002,9 @@
         <?php echo $row['email_bcc'] ?>
       </td>
       <td>
+        <?php echo $row['phonenumber'] ?>
+      </td>
+      <td>
         <a href="?view=edit_contact&amp;id_contacts=<?php echo $row['id']?>"><?php echo t('Edit') ?></a>
         <a href="?action=delete_contact&amp;id_contacts=<?php echo $row['id']?>"><?php echo t('Delete') ?></a>
       </td>
@@ -1095,6 +1126,10 @@
       <input type="text" name="email_bcc" value="<?php echo is_array($contact) && isset($contact['email_bcc']) ? $contact['email_bcc'] : '' ?>">
       <br>
 
+      <label><?php echo t('Phone'); ?>:</label><br>
+      <input type="text" name="phonenumber" value="<?php echo is_array($contact) && isset($contact['phonenumber']) ? $contact['phonenumber'] : '' ?>">
+      <br>
+
       <input type="submit" name="submit_edit_contact" value="<?php echo t('Save'); ?>">
       <br>
     </fieldset>
@@ -1158,37 +1193,8 @@
       <input type="text" name="invoicenumber" value="<?php echo is_array($debt) && isset($debt['invoicenumber']) ? $debt['invoicenumber'] : '' ?>">
       <br>
 
-      <label><?php echo t('Name'); ?>:</label><br>
-      <input type="text" name="name" value="<?php echo is_array($debt) && isset($debt['name']) ? $debt['name'] : '' ?>">
-      <br>
-
-      <label><?php echo t('Address'); ?>:</label><br>
-      <input type="text" name="address" value="<?php echo is_array($debt) && isset($debt['address']) ? $debt['address'] : '' ?>">
-      <br>
-
-      <label><?php echo t('Postal code'); ?>:</label><br>
-      <input type="text" name="zipcode" value="<?php echo is_array($debt) && isset($debt['zipcode']) ? $debt['zipcode'] : '' ?>">
-      <br>
-
-
-      <label><?php echo t('City'); ?>:</label><br>
-      <input type="text" name="city" value="<?php echo is_array($debt) && isset($debt['city']) ? $debt['city'] : '' ?>">
-      <br>
-
-      <label><?php echo t('Organisation-/social security number'); ?>:</label><br>
-      <input type="text" name="orgno" value="<?php echo is_array($debt) && isset($debt['orgno']) ? $debt['orgno'] : '' ?>">
-      <br>
-
       <label><?php echo t('Interest percentage'); ?>:</label><br>
       <input type="number" min=0 step="0.01" name="percentage" value="<?php echo is_array($debt) && isset($debt['percentage']) ? $debt['percentage'] * 100 : '' ?>">
-      <br>
-
-      <label><?php echo t('E-mail, debtor'); ?>:</label><br>
-      <input type="text" name="email" value="<?php echo is_array($debt) && isset($debt['email']) ? $debt['email'] : '' ?>">
-      <br>
-
-      <label><?php echo t('E-mail, hidden carbon copy'); ?>:</label><br>
-      <input type="text" name="email_bcc" value="<?php echo is_array($debt) && isset($debt['email_bcc']) ? $debt['email_bcc'] : '' ?>">
       <br>
 
       <label><?php echo t('Invoice date'); ?>:</label><br>
