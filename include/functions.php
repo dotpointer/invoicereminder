@@ -21,15 +21,16 @@
   # 2018-08-08 17:18:00 - renaming properties table
   # 2018-08-08 17:43:00 - moving setup downwards to make verbosity constants available
   # 2018-11-06 21:48:00 - renaming debts table and columns
+  # 2018-11-12 17:51:00 - separating debt and debtor
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
   define('BALANCE_TYPE_NORMAL', 0);
   define('BALANCE_TYPE_DUEDATE', 1);
 
-  define('DEBTOR_STATUS_ACTIVE', 1);
-  define('DEBTOR_STATUS_ERROR', -1);
-  define('DEBTOR_STATUS_INACTIVE', 0);
+  define('DEBT_STATUS_ACTIVE', 1);
+  define('DEBT_STATUS_ERROR', -1);
+  define('DEBT_STATUS_INACTIVE', 0);
 
   define('LOG_TYPE_ERROR', -1);
   define('LOG_TYPE_MAIL_SENT', 1);
@@ -240,7 +241,7 @@
 
     $send_mail = true;
 
-    # get the debtor
+    # get the debt
     $sql = '
       SELECT
         *
@@ -251,21 +252,21 @@
       LIMIT 1;
       ';
     cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-    $debtor = db_query($link, $sql);
-    if ($debtor === false) {
+    $debt = db_query($link, $sql);
+    if ($debt === false) {
       cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
       die(1);
     }
 
-    # no debtor found?
-    if (!count($debtor) || !isset($debtor[0])) {
+    # no debt found?
+    if (!count($debt) || !isset($debt[0])) {
       return false;
     }
 
-    # simplify debtor
-    $debtor = reset($debtor);
+    # simplify debt
+    $debt = reset($debt);
 
-    # get the debtor balance history
+    # get the debt balance history
     # get reference rate, descending
     $sql = '
       SELECT
@@ -408,7 +409,7 @@
         # calculate interest for one day - if there is amount to calculate on
         if ($amount_accrued > 0 && $duedate_passed) {
 
-          $rate = $debtor['percentage'];
+          $rate = $debt['percentage'];
 
           # no changes this day - interest goes up all the time
           $interest_this_day = (($amount_accrued) * ($rate + $refrate)) / (date('z', mktime(0, 0, 0, 12, 31, date('Y', strtotime($thisdate)))) + 1);
@@ -531,7 +532,7 @@
   }
 
   function compose_mail($link, $id_debts, $templatefile=false, $force=false, $dateto=false) {
-    # get all active debtors with active status and not reminded yet
+    # get all active debts with active status and not reminded yet
     $sql = '
       SELECT
         *
@@ -542,19 +543,19 @@
       ';
 
     cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-    $debtors = db_query($link, $sql);
-    if ($debtors === false) {
+    $debts = db_query($link, $sql);
+    if ($debts === false) {
       cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
       die(1);
     }
 
-    # no debtor found?
-    if (!count($debtors)) {
-      cl($link, VERBOSE_DEBUG, 'Debtor with id '.$id_debts.' not found');
+    # no debt found?
+    if (!count($debts)) {
+      cl($link, VERBOSE_DEBUG, 'Debt with id '.$id_debts.' not found');
       return false;
     }
 
-    $debtor = $debtors[0];
+    $debt = $debts[0];
 
     # get properties
     $sql = '
@@ -573,29 +574,29 @@
 
     if (!$templatefile) {
       # get the template
-      $templatefile = TEMPLATE_DIR.$debtor['template'];
+      $templatefile = TEMPLATE_DIR.$debt['template'];
     }
 
     # log it
-    cl($link, VERBOSE_DEBUG, 'Using template: '.$templatefile, $debtor['id']);
+    cl($link, VERBOSE_DEBUG, 'Using template: '.$templatefile, $debt['id']);
 
     # no template file, fatal error
     if (!$templatefile) {
 
-      if ($templatefile === $debtor['template']) {
-        # disable all debtors with this template
-        disable_debtors_with_template($link, $debtor['template']);
+      if ($templatefile === $debt['template']) {
+        # disable all debts with this template
+        disable_debts_with_template($link, $debt['template']);
       }
 
       # log it
       cl(
         $link,
         VERBOSE_ERROR,
-        TEMPLATE_DIR.$debtor['template'].' does not exist',
-        $debtor['id']
+        TEMPLATE_DIR.$debt['template'].' does not exist',
+        $debt['id']
       );
 
-      # take next debtor
+      # take next debt
       return false;
     }
 
@@ -605,18 +606,18 @@
     # failed reading template file
     if ($template === false) {
 
-      # disable all debtors with this template
-      disable_debtors_with_template($link, $debtor['template']);
+      # disable all debts with this template
+      disable_debts_with_template($link, $debt['template']);
 
       # log it
       cl(
         $link,
         VERBOSE_ERROR,
-        TEMPLATE_DIR.$debtor['template'].' is not readable',
-        $debtor['id']
+        TEMPLATE_DIR.$debt['template'].' is not readable',
+        $debt['id']
       );
 
-      # take next debtor
+      # take next debt
       return false;
     }
 
@@ -625,37 +626,37 @@
     # failed reading template file
     if (!strlen($template)) {
 
-      # disable all debtors with this template
-      disable_debtors_with_template($link, $debtor['template']);
+      # disable all debts with this template
+      disable_debts_with_template($link, $debt['template']);
 
       # log it
       cl(
         $link,
         VERBOSE_ERROR,
-        TEMPLATE_DIR.$debtor['template'].' is empty',
-        $debtor['id']
+        TEMPLATE_DIR.$debt['template'].' is empty',
+        $debt['id']
       );
 
-      # take next debtor
+      # take next debt
       return false;
     }
 
     # extract subject
     if (strpos($template, '---') === false) {
 
-      # disable all debtors with this template
-      disable_debtors_with_template($link, $debtor['template']);
+      # disable all debts with this template
+      disable_debts_with_template($link, $debt['template']);
 
       # log it
       cl(
         $link,
         VERBOSE_ERROR,
-        TEMPLATE_DIR.$debtor['template'].
+        TEMPLATE_DIR.$debt['template'].
         ' is missing subject/body divider ---',
-        $debtor['id']
+        $debt['id']
       );
 
-      # take next debtor
+      # take next debt
       return false;
     }
 
@@ -665,16 +666,16 @@
       $parameters['dateto'] = $dateto;
     }
 
-    $balance_history = balance_history($link, $debtor['id'], $parameters);
+    $balance_history = balance_history($link, $debt['id'], $parameters);
 
     if (!$force && !$balance_history['special']['send_mail']) {
       # log it
-      cl($link, VERBOSE_DEBUG, 'Disabling debtor due to satisfied balance history.', $debtor['id']);
-      # disable this debtor
-      set_debtor_status(
+      cl($link, VERBOSE_DEBUG, 'Disabling debt due to satisfied balance history.', $debt['id']);
+      # disable this debt
+      set_debt_status(
         $link,
-        $debtor['id'],
-        DEBTOR_STATUS_INACTIVE
+        $debt['id'],
+        DEBT_STATUS_INACTIVE
       );
       return false;
     }
@@ -690,22 +691,22 @@
 
     # fill placeholders
     $placeholders = array(
-      '$ADDRESS$' => $debtor['address'],
+      '$ADDRESS$' => $debt['address'],
       '$AMOUNT-ACCRUED$' => money($lastrow['amount_accrued']),
-      '$CITY$' => $debtor['city'],
+      '$CITY$' => $debt['city'],
       '$COST-ACCRUED$' => money($lastrow['cost_accrued']),
       '$DUE-DATE$' => $balance_history['special']['duedate'],
-      '$EMAIL$' => $debtor['email'],
+      '$EMAIL$' => $debt['email'],
       '$INTEREST-ACCRUED$' => money($lastrow['interest_accrued']),
       '$INTEREST-DATE$' => $dateto ? $dateto : date('Y-m-d'),
       '$INTEREST-PER-DAY$' => money($lastrow['interest_this_day']),
-      '$INVOICE-DATE$' => $debtor['invoicedate'],
-      '$INVOICE-NUMBER$' => $debtor['invoicenumber'],
-      '$NAME$' => $debtor['name'],
-      '$ORGNO$' => $debtor['orgno'],
+      '$INVOICE-DATE$' => $debt['invoicedate'],
+      '$INVOICE-NUMBER$' => $debt['invoicenumber'],
+      '$NAME$' => $debt['name'],
+      '$ORGNO$' => $debt['orgno'],
       '$RATE-ACCRUED$' => percentage(($lastrow['rate_accrued']) * 100, 2),
       '$TOTAL$' => money($lastrow['amount_accrued'] + $lastrow['interest_accrued'] + $lastrow['cost_accrued']),
-      '$ZIP-CODE$' => $debtor['zipcode']
+      '$ZIP-CODE$' => $debt['zipcode']
     );
 
     # complement with properties from database
@@ -714,7 +715,7 @@
     }
 
     # log it
-    cl($link, VERBOSE_DEBUG, 'Filling template placeholders', $debtor['id']);
+    cl($link, VERBOSE_DEBUG, 'Filling template placeholders', $debt['id']);
 
     # make sure all locations exist
     foreach ($placeholders as $placeholderk => $placeholderv) {
@@ -724,23 +725,23 @@
 
         # is it a required value?
         if (in_array($placeholderk, $placeholders_must_exist)) {
-          # disable this debtor
-          set_debtor_status(
+          # disable this debt
+          set_debt_status(
             $link,
-            $debtor['id'],
-            DEBTOR_STATUS_ERROR
+            $debt['id'],
+            DEBT_STATUS_ERROR
           );
 
           # log it
           cl(
             $link,
             VERBOSE_ERROR,
-            TEMPLATE_DIR.$debtor['template'].
+            TEMPLATE_DIR.$debt['template'].
               ' is missing placeholder '.
               $placeholderk,
-            $debtor['id']
+            $debt['id']
           );
-          # take next debtor
+          # take next debt
           return false;
         }
 
@@ -768,9 +769,9 @@
     # $headers[] = 'Reply-To: '.MAIL_ADDRESS_FROM;
 
     # is there a bcc address supplied
-    if (strlen($debtor['email_bcc'])) {
+    if (strlen($debt['email_bcc'])) {
       # then add the bcc header
-      $headers[] = 'Bcc: '.$debtor['email_bcc'];
+      $headers[] = 'Bcc: '.$debt['email_bcc'];
     }
 
     cl(
@@ -781,20 +782,20 @@
         implode(
           str_repeat('-', 80)."\n",
           array(
-            'To: '.$debtor['email']."\n".implode("\n", $headers)."\n",
+            'To: '.$debt['email']."\n".implode("\n", $headers)."\n",
             $subject."\n",
             $body
           )
         )."\n".
         str_repeat('-', 80)."\n",
-      $debtor['id']
+      $debt['id']
     );
 
     return array(
       'headers' => $headers,
       'templatefile' => basename($templatefile),
-      'templatefile_default' => basename($debtor['template']),
-      'to' => $debtor['email'],
+      'templatefile_default' => basename($debt['template']),
+      'to' => $debt['email'],
       'subject' => $subject,
       'body' => $body
     );
@@ -852,14 +853,14 @@
     return true;
   }
 
-  # to disable all debtors with a certain template
-  function disable_debtors_with_template($link, $template) {
-    # disable this debtor
+  # to disable all debts with a certain template
+  function disable_debts_with_template($link, $template) {
+    # disable this debt
     $sql = '
       UPDATE
         invoicereminder_debts
       SET
-        status="'.dbres($link,DEBTOR_STATUS_ERROR).'",
+        status="'.dbres($link,DEBT_STATUS_ERROR).'",
         updated="'.dbres($link, date('Y-m-d H:i:s')).'"
       WHERE
         template="'.dbres($link, $template).'"
@@ -949,9 +950,9 @@
     return number_format($percentage, 2, ',', '');
   }
 
-  # to disable a debtor
-  function set_debtor_status($link, $id, $status) {
-    # disable this debtor
+  # to disable a debt
+  function set_debt_status($link, $id, $status) {
+    # disable this debt
     $sql = '
       UPDATE
         invoicereminder_debts

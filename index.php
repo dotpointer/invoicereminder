@@ -19,6 +19,7 @@
   # 2018-08-08 17:18:00 - renaming properties table
   # 2018-11-06 20:35:00 - adding contacts
   # 2018-11-06 21:48:00 - renaming table and columns
+  # 2018-11-12 17:51:00 - separating debt and debtor
 
   require_once('include/functions.php');
 
@@ -154,7 +155,7 @@
 
       header('Location: ?view=contacts');
       die();
-    case 'insert_update_debtor':
+    case 'insert_update_debt':
 
       $iu = array(
         'id_contacts_debtor' => $id_contacts_debtor,
@@ -180,7 +181,7 @@
         'zipcode' => $zipcode
       );
 
-      # new debtor
+      # new debt
       if (!$id_debts) {
 
         $iu['created'] = date('Y-m-d H:i:s');
@@ -191,7 +192,7 @@
           ') VALUES('.
             implode(', ', $iu).
           ')';
-      # update debtor
+      # update debt
       } else {
         $iu = dbpua($link, $iu);
         $sql = '
@@ -210,7 +211,7 @@
         die(1);
       }
 
-      header('Location: ?view=debtors');
+      header('Location: ?view=debts');
       die();
     case 'insert_update_property':
 
@@ -363,25 +364,25 @@
         ';
       $referencerate = db_query($link, $sql);
 
-      # get debtors
+      # get debts
       $sql = '
         SELECT
           *
         FROM
           invoicereminder_debts
         ';
-      $debtors = db_query($link, $sql);
+      $debts = db_query($link, $sql);
 
-      foreach ($debtors as $k => $debtor) {
-        $debtors[$k]['balance_history'] = balance_history($link, $debtor['id']);
+      foreach ($debts as $k => $debt) {
+        $debts[$k]['balance_history'] = balance_history($link, $debt['id']);
       }
 
       break;
 
     case 'balance':
-      # get the debtor
+      # get the debt
       if ($id_debts) {
-        # find the debtor
+        # find the debt
         $sql = '
           SELECT
             *
@@ -390,18 +391,18 @@
           WHERE
             id="'.dbres($link, $id_debts).'"
           ';
-        $debtors = db_query($link, $sql);
-        if ($debtors === false) {
+        $debts = db_query($link, $sql);
+        if ($debts === false) {
           cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
           die(1);
         }
 
-        # was there a debtor found?
-        if (count($debtors)) {
+        # was there a debt found?
+        if (count($debts)) {
           # then take that
-          $debtor = reset($debtors);
+          $debt = reset($debts);
         } else {
-          $debtor = false;
+          $debt = false;
         }
       }
 
@@ -465,9 +466,9 @@
 
       $id_debts = is_array($balance) ? $balance['id_debts'] : $id_debts;
 
-      # get the debtor
+      # get the debt
       if ($id_debts) {
-        # find the debtor
+        # find the debt
         $sql = '
           SELECT
             *
@@ -476,24 +477,24 @@
           WHERE
             id="'.dbres($link, $id_debts).'"
           ';
-        $debtors = db_query($link, $sql);
-        if ($debtors === false) {
+        $debts = db_query($link, $sql);
+        if ($debts === false) {
           cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
           die(1);
         }
 
-        # was there a debtor found?
-        if (count($debtors)) {
+        # was there a debt found?
+        if (count($debts)) {
           # then take that
-          $debtor = reset($debtors);
+          $debt = reset($debts);
         } else {
-          $debtor = false;
+          $debt = false;
         }
 
       } else {
-        echo 'Saknar id_debts';
+        echo 'Missing id_debts';
         die();
-        $debtor = false;
+        $debt = false;
       }
       break;
     case 'edit_contact':
@@ -540,7 +541,7 @@
         $contact = false;
       }
       break;
-    case 'edit_debtor':
+    case 'edit_contact':
 
       # find all contacts
       $sql = '
@@ -570,9 +571,9 @@
       }
       $templatefiles = $temp;
 
-      # was there a debtor requested?
+      # was there a debt requested?
       if ($id_debts) {
-        # find the debtor
+        # find the debt
         $sql = '
           SELECT
             *
@@ -581,29 +582,29 @@
           WHERE
             id="'.dbres($link, $id_debts).'"
           ';
-        $debtors = db_query($link, $sql);
-        if ($debtors === false) {
+        $debts = db_query($link, $sql);
+        if ($debts === false) {
           cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
           die(1);
         }
 
-        # was there a debtor found?
-        if (count($debtors)) {
+        # was there a debt found?
+        if (count($debts)) {
           # then take that
-          $debtor = reset($debtors);
+          $debt = reset($debts);
         } else {
-          $debtor = false;
+          $debt = false;
         }
 
       } else {
-        $debtor = false;
+        $debt = false;
       }
       break;
     case 'edit_property':
 
-      # was there a debtor requested?
+      # was there an item requested?
       if ($id_properties) {
-        # find the debtor
+        # find the item
         $sql = '
           SELECT
             *
@@ -618,7 +619,7 @@
           die(1);
         }
 
-        # was there a debtor found?
+        # was there an item found?
         if (count($properties)) {
           # then take that
           $property = reset($properties);
@@ -630,7 +631,7 @@
         $property = false;
       }
 
-      # find the debtor
+      # find the item
       $sql = '
         SELECT
           *
@@ -669,9 +670,9 @@
       break;
     case 'history':
 
-      # get the debtor
+      # get the item
       if ($id_debts) {
-        # find the debtor
+        # find the item
         $sql = '
           SELECT
             *
@@ -680,18 +681,18 @@
           WHERE
             id="'.dbres($link, $id_debts).'"
           ';
-        $debtors = db_query($link, $sql);
-        if ($debtors === false) {
+        $debts = db_query($link, $sql);
+        if ($debts === false) {
           cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
           die(1);
         }
 
-        # was there a debtor found?
-        if (count($debtors)) {
+        # was there a debt found?
+        if (count($debts)) {
           # then take that
-          $debtor = reset($debtors);
+          $debt = reset($debts);
         } else {
-          $debtor = false;
+          $debt = false;
         }
       }
 
@@ -775,7 +776,7 @@
 <h1><?php echo t('Invoice reminder'); ?></h1>
 <ul class="menu">
   <li><a href="?view="><?php echo t('Reminders'); ?></a></li>
-  <li><a href="?view=edit_debtor"><?php echo t('New debtor'); ?></a></li>
+  <li><a href="?view=edit_debt"><?php echo t('New debt'); ?></a></li>
   <li><a href="?view=log"><?php echo t('Event log'); ?></a></li>
   <li><a href="?view=referencerate"><?php echo t('Reference rate'); ?></a></li>
   <li><a href="?view=properties"><?php echo t('Properties'); ?></a></li>
@@ -806,18 +807,18 @@
       <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
-      # walk debtors
-      foreach ($debtors as $debtor) {
-        $bend = end($debtor['balance_history']['history']);
+      # walk debts
+      foreach ($debts as $debt) {
+        $bend = end($debt['balance_history']['history']);
 ?>
     <tr>
-      <td><?php echo $debtor['id']; ?></td>
-      <td><?php echo $debtor['invoicenumber']; ?></td>
+      <td><?php echo $debt['id']; ?></td>
+      <td><?php echo $debt['invoicenumber']; ?></td>
       <td>
-        <?php echo $debtor['name']; ?><br>
-        <?php echo $debtor['address']; ?><br>
-        <?php echo $debtor['zipcode']; ?> <?php echo $debtor['city']; ?><br>
-        <?php echo $debtor['orgno']; ?>
+        <?php echo $debt['name']; ?><br>
+        <?php echo $debt['address']; ?><br>
+        <?php echo $debt['zipcode']; ?> <?php echo $debt['city']; ?><br>
+        <?php echo $debt['orgno']; ?>
       </td>
       <td class="amount">
         <?php echo money($bend['amount_accrued']); ?> kr
@@ -836,45 +837,45 @@
       <td class="amount">
         <?php echo isset($bend['amount_accrued'], $bend['interest_accrued'], $bend['cost_accrued']) ? money($bend['amount_accrued'] + $bend['interest_accrued'] + $bend['cost_accrued']) : ''; ?> kr
         <br>
-        (<?php echo $debtor['balance_history']['special']['date_last_year_end'] ?>: <?php echo money($debtor['balance_history']['special']['total_last_year_end']) ?> kr)
+        (<?php echo $debt['balance_history']['special']['date_last_year_end'] ?>: <?php echo money($debt['balance_history']['special']['total_last_year_end']) ?> kr)
       </td>
       <td>
-        <?php echo $debtor['email']; ?><br>
-        (<?php echo $debtor['email_bcc']; ?>)
+        <?php echo $debt['email']; ?><br>
+        (<?php echo $debt['email_bcc']; ?>)
       </td>
-      <td><?php echo $debtor['balance_history']['special']['duedate']; ?></td>
+      <td><?php echo $debt['balance_history']['special']['duedate']; ?></td>
       <td><?php
-        switch ($debtor['status']) {
-          case DEBTOR_STATUS_ACTIVE:
+        switch ($debt['status']) {
+          case DEBT_STATUS_ACTIVE:
             echo t('Active');
             break;
-          case DEBTOR_STATUS_INACTIVE:
+          case DEBT_STATUS_INACTIVE:
             echo t('Inactive');
             break;
-          case DEBTOR_STATUS_ERROR:
+          case DEBT_STATUS_ERROR:
             echo t('Error');
             break;
           default:
-            echo $debtor['status'];
+            echo $debt['status'];
             break;
         }
       ?></td>
-      <td><?php echo $debtor['mails_sent']; ?> st</td>
-      <td><?php echo $debtor['reminder_days']; ?></td>
-      <td><?php echo $debtor['day_of_month']; ?></td>
-      <td><?php echo $debtor['template']; ?></td>
+      <td><?php echo $debt['mails_sent']; ?> st</td>
+      <td><?php echo $debt['reminder_days']; ?></td>
+      <td><?php echo $debt['day_of_month']; ?></td>
+      <td><?php echo $debt['template']; ?></td>
       <td>
-        <a href="?view=edit_debtor&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('Edit'); ?></a>
+        <a href="?view=edit_debt&amp;id_debts=<?php echo $debt['id'] ?>"><?php echo t('Edit'); ?></a>
         <br>
-        <a href="?view=log&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('E-mail log'); ?></a>
+        <a href="?view=log&amp;id_debts=<?php echo $debt['id'] ?>"><?php echo t('E-mail log'); ?></a>
         <br>
-        <a href="?view=balance&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('Balance'); ?></a>
+        <a href="?view=balance&amp;id_debts=<?php echo $debt['id'] ?>"><?php echo t('Balance'); ?></a>
         <br>
-        <a href="?view=history&amp;id_debts=<?php echo $debtor['id'] ?>"><?php echo t('History'); ?></a>
+        <a href="?view=history&amp;id_debts=<?php echo $debt['id'] ?>"><?php echo t('History'); ?></a>
       </td>
     </tr>
 <?php
-      } # walk debtors
+      } # walk debts
 ?>
   </table>
 <?php
@@ -882,7 +883,7 @@
     case 'balance':
 ?>
   <h2><?php echo t('Balance'); ?></h2>
-  <p><?php echo t('Debtor'); ?>: <?php echo $debtor['name']?> (#<?php echo $debtor['id'] ?>).
+  <p><?php echo t('Debtor'); ?>: <?php echo $debt['name']?> (#<?php echo $debt['id'] ?>).
   <p>
     <?php echo t('This page shows balance changes.'); ?>
   </p>
@@ -900,7 +901,7 @@
       <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
-      # walk debtors
+      # walk debts
       foreach ($balance as $k => $row) {
 ?>
     <tr>
@@ -925,7 +926,8 @@
 ?>
   </table>
 <?php
-    case 'contacts':
+    break;
+  case 'contacts':
 ?>
   <h2><?php echo t('Contacts'); ?></h2>
   <p><?php echo t('This page shows contacts.') ?>
@@ -944,7 +946,7 @@
       <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
-      # walk debtors
+      # walk contacts
       foreach ($contacts as $k => $row) {
 ?>
     <tr>
@@ -991,8 +993,8 @@
       <input type="hidden" name="id_balance" value="<?php echo $id_balance ?>">
 
       <label><?php echo t('Debtor'); ?>:</label><br>
-      <span class="value"><?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : 'Ingen' ?> (#<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>)</span>
-      <input type="hidden" name="id_debts" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <span class="value"><?php echo is_array($debt) && isset($debt['name']) ? $debt['name'] : 'Ingen' ?> (#<?php echo is_array($debt) && isset($debt['id']) ? $debt['id'] : '' ?>)</span>
+      <input type="hidden" name="id_debts" value="<?php echo is_array($debt) && isset($debt['id']) ? $debt['id'] : '' ?>">
       <br>
 
       <label><?php echo t('Row type'); ?>:</label><br>
@@ -1008,8 +1010,8 @@
       <br>
 
       <label><?php echo t('Debtor'); ?>:</label><br>
-      <span class="value"><?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : 'Ingen' ?> (#<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>)</span>
-      <input type="hidden" name="id_debts" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <span class="value"><?php echo is_array($debt) && isset($debt['name']) ? $debt['name'] : 'Ingen' ?> (#<?php echo is_array($debt) && isset($debt['id']) ? $debt['id'] : '' ?>)</span>
+      <input type="hidden" name="id_debts" value="<?php echo is_array($debt) && isset($debt['id']) ? $debt['id'] : '' ?>">
       <br>
 
       <label><?php echo t('Debt amount, change'); ?>:</label><br>
@@ -1099,17 +1101,17 @@
   </form>
 <?php
       break;
-    case 'edit_debtor':
+    case 'edit_debt':
 ?>
-  <h2><?php echo t('Edit debtor'); ?></h2>
+  <h2><?php echo t('Edit debt'); ?></h2>
   <form action="?" method="post">
     <fieldset>
 
-      <input type="hidden" name="action" value="insert_update_debtor">
+      <input type="hidden" name="action" value="insert_update_debt">
 
       <label>#:</label><br>
-      <span class="value"><?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : t('New debtor') ?></span>
-      <input type="hidden" name="id_debts" value="<?php echo is_array($debtor) && isset($debtor['id']) ? $debtor['id'] : '' ?>">
+      <span class="value"><?php echo is_array($debt) && isset($debt['id']) ? $debt['id'] : t('New debt') ?></span>
+      <input type="hidden" name="id_debts" value="<?php echo is_array($debt) && isset($debt['id']) ? $debt['id'] : '' ?>">
       <br>
 
       <label><?php echo t('Creditor'); ?>:</label><br>
@@ -1125,7 +1127,7 @@
             $names[] = $contact['company'];
           }
 ?>
-        <option value="<?php echo $contact['id'] ?>"<?php echo is_array($debtor) && isset($debtor['id_contacts_creditor']) && $debtor['id_contacts_creditor'] === $contact['id'] ? ' selected' : '' ?>>
+        <option value="<?php echo $contact['id'] ?>"<?php echo is_array($debt) && isset($debt['id_contacts_creditor']) && $debt['id_contacts_creditor'] === $contact['id'] ? ' selected' : '' ?>>
           <?php echo implode(', ', $names); ?>
         </option>
         <?php } ?>
@@ -1145,7 +1147,7 @@
             $names[] = $contact['company'];
           }
 ?>
-        <option value="<?php echo $contact['id'] ?>"<?php echo is_array($debtor) && isset($debtor['id_contacts_debtor']) && $debtor['id_contacts_debtor'] === $contact['id'] ? ' selected' : '' ?>>
+        <option value="<?php echo $contact['id'] ?>"<?php echo is_array($debt) && isset($debt['id_contacts_debtor']) && $debt['id_contacts_debtor'] === $contact['id'] ? ' selected' : '' ?>>
           <?php echo implode(', ', $names); ?>
         </option>
         <?php } ?>
@@ -1153,70 +1155,70 @@
       <br>
 
       <label><?php echo t('Invoice number'); ?>:</label><br>
-      <input type="text" name="invoicenumber" value="<?php echo is_array($debtor) && isset($debtor['invoicenumber']) ? $debtor['invoicenumber'] : '' ?>">
+      <input type="text" name="invoicenumber" value="<?php echo is_array($debt) && isset($debt['invoicenumber']) ? $debt['invoicenumber'] : '' ?>">
       <br>
 
       <label><?php echo t('Name'); ?>:</label><br>
-      <input type="text" name="name" value="<?php echo is_array($debtor) && isset($debtor['name']) ? $debtor['name'] : '' ?>">
+      <input type="text" name="name" value="<?php echo is_array($debt) && isset($debt['name']) ? $debt['name'] : '' ?>">
       <br>
 
       <label><?php echo t('Address'); ?>:</label><br>
-      <input type="text" name="address" value="<?php echo is_array($debtor) && isset($debtor['address']) ? $debtor['address'] : '' ?>">
+      <input type="text" name="address" value="<?php echo is_array($debt) && isset($debt['address']) ? $debt['address'] : '' ?>">
       <br>
 
       <label><?php echo t('Postal code'); ?>:</label><br>
-      <input type="text" name="zipcode" value="<?php echo is_array($debtor) && isset($debtor['zipcode']) ? $debtor['zipcode'] : '' ?>">
+      <input type="text" name="zipcode" value="<?php echo is_array($debt) && isset($debt['zipcode']) ? $debt['zipcode'] : '' ?>">
       <br>
 
 
       <label><?php echo t('City'); ?>:</label><br>
-      <input type="text" name="city" value="<?php echo is_array($debtor) && isset($debtor['city']) ? $debtor['city'] : '' ?>">
+      <input type="text" name="city" value="<?php echo is_array($debt) && isset($debt['city']) ? $debt['city'] : '' ?>">
       <br>
 
       <label><?php echo t('Organisation-/social security number'); ?>:</label><br>
-      <input type="text" name="orgno" value="<?php echo is_array($debtor) && isset($debtor['orgno']) ? $debtor['orgno'] : '' ?>">
+      <input type="text" name="orgno" value="<?php echo is_array($debt) && isset($debt['orgno']) ? $debt['orgno'] : '' ?>">
       <br>
 
       <label><?php echo t('Interest percentage'); ?>:</label><br>
-      <input type="number" min=0 step="0.01" name="percentage" value="<?php echo is_array($debtor) && isset($debtor['percentage']) ? $debtor['percentage'] * 100 : '' ?>">
+      <input type="number" min=0 step="0.01" name="percentage" value="<?php echo is_array($debt) && isset($debt['percentage']) ? $debt['percentage'] * 100 : '' ?>">
       <br>
 
       <label><?php echo t('E-mail, debtor'); ?>:</label><br>
-      <input type="text" name="email" value="<?php echo is_array($debtor) && isset($debtor['email']) ? $debtor['email'] : '' ?>">
+      <input type="text" name="email" value="<?php echo is_array($debt) && isset($debt['email']) ? $debt['email'] : '' ?>">
       <br>
 
       <label><?php echo t('E-mail, hidden carbon copy'); ?>:</label><br>
-      <input type="text" name="email_bcc" value="<?php echo is_array($debtor) && isset($debtor['email_bcc']) ? $debtor['email_bcc'] : '' ?>">
+      <input type="text" name="email_bcc" value="<?php echo is_array($debt) && isset($debt['email_bcc']) ? $debt['email_bcc'] : '' ?>">
       <br>
 
       <label><?php echo t('Invoice date'); ?>:</label><br>
-      <input type="text" name="invoicedate" value="<?php echo is_array($debtor) && isset($debtor['invoicedate']) ? $debtor['invoicedate'] : '' ?>">
+      <input type="text" name="invoicedate" value="<?php echo is_array($debt) && isset($debt['invoicedate']) ? $debt['invoicedate'] : '' ?>">
       <br>
 
       <label><?php echo t('Days between reminders'); ?>:</label><br>
-      <input type="number" name="reminder_days" value="<?php echo is_array($debtor) && isset($debtor['reminder_days']) ? $debtor['reminder_days'] : '' ?>">
+      <input type="number" name="reminder_days" value="<?php echo is_array($debt) && isset($debt['reminder_days']) ? $debt['reminder_days'] : '' ?>">
       <br>
 
       <label><?php echo t('Day in month, earliest'); ?>:</label><br>
-      <input type="number" min="1" max="31" name="day_of_month" value="<?php echo is_array($debtor) && isset($debtor['day_of_month']) ? $debtor['day_of_month'] : '' ?>">
+      <input type="number" min="1" max="31" name="day_of_month" value="<?php echo is_array($debt) && isset($debt['day_of_month']) ? $debt['day_of_month'] : '' ?>">
       <br>
 
       <label><?php echo t('Template'); ?>:</label><br>
       <select name="template">
         <?php foreach ($templatefiles as $templatefile) { ?>
-        <option value="<?php echo $templatefile ?>"<?php echo is_array($debtor) && isset($debtor['template']) && $debtor['template'] === $templatefile ? ' selected' : '' ?>><?php echo $templatefile ?></option>
+        <option value="<?php echo $templatefile ?>"<?php echo is_array($debt) && isset($debt['template']) && $debt['template'] === $templatefile ? ' selected' : '' ?>><?php echo $templatefile ?></option>
         <?php } ?>
       </select>
       <br>
 
       <label><?php echo t('Status'); ?>:</label><br>
       <select name="status">
-        <option value="<?php echo DEBTOR_STATUS_ACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ACTIVE ? ' selected' : '' ?>><?php echo t('Active'); ?></option>
-        <option value="<?php echo DEBTOR_STATUS_INACTIVE ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_INACTIVE ? ' selected' : '' ?>><?php echo t('Inactive'); ?></option>
-        <option value="<?php echo DEBTOR_STATUS_ERROR ?>"<?php echo is_array($debtor) && isset($debtor['status']) && (int)$debtor['status'] === DEBTOR_STATUS_ERROR ? ' selected' : '' ?>><?php echo t('Error'); ?></option>
+        <option value="<?php echo DEBT_STATUS_ACTIVE ?>"<?php echo is_array($debt) && isset($debt['status']) && (int)$debt['status'] === DEBT_STATUS_ACTIVE ? ' selected' : '' ?>><?php echo t('Active'); ?></option>
+        <option value="<?php echo DEBT_STATUS_INACTIVE ?>"<?php echo is_array($debt) && isset($debt['status']) && (int)$debt['status'] === DEBT_STATUS_INACTIVE ? ' selected' : '' ?>><?php echo t('Inactive'); ?></option>
+        <option value="<?php echo DEBT_STATUS_ERROR ?>"<?php echo is_array($debt) && isset($debt['status']) && (int)$debt['status'] === DEBT_STATUS_ERROR ? ' selected' : '' ?>><?php echo t('Error'); ?></option>
       </select>
       <br>
-      <input type="submit" name="submit_edit_debtor" value="<?php echo t('Save'); ?>">
+      <input type="submit" name="submit_edit_debt" value="<?php echo t('Save'); ?>">
       <br>
     </fieldset>
   </form>
@@ -1256,7 +1258,7 @@
     case 'history':
 ?>
   <h2><?php echo t('Debt history'); ?></h2>
-  <p><?php echo t('Debtor'); ?>: <?php echo $debtor['name']?> (#<?php echo $debtor['id']; ?>).
+  <p><?php echo t('Debtor'); ?>: <?php echo $debt['name']?> (#<?php echo $debt['id']; ?>).
   <p>
     <?php echo t('This page shows debt history.'); ?>
   </p>
@@ -1283,7 +1285,7 @@
       <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
-      # walk debtors
+      # walk history
       foreach ($balance_history['history'] as $k => $row) {
 
         if ($onlychanges == '1') {
@@ -1380,7 +1382,7 @@
       <td><?php echo $row['message'] ?></td>
       <td><?php echo $row['mails_sent'] ?></td>
       <td>
-        <a href="?view=mail&amp;id_debts=<?php echo $debtor['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
+        <a href="?view=mail&amp;id_debts=<?php echo $debt['id'] ?>&amp;dateto=<?=$row['date']?>"><?php echo t('E-mail'); ?></a>
       </td>
     </tr>
 <?php
@@ -1490,7 +1492,7 @@
       <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
-      # walk debtors
+      # walk properties
       foreach ($properties as $k => $row) {
 ?>
     <tr>

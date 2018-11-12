@@ -6,6 +6,7 @@
 # 2018-08-04 12:48:00
 # 2018-08-08 20:30:00 - adding balance
 # 2018-11-06 20:35:00 - adding contacts
+# 2018-11-12 17:51:00 - separating debt and debtor
 
 # store this into translations
 $translations['languages'][] = array(
@@ -68,7 +69,7 @@ $translations['languages'][] = array(
     array('National interest rate', 'Nationell referensränta'),
     array('New balance row', 'Ny balansrad'),
     array('New contact', 'Ny kontakt'),
-    array('New debtor', 'Ny gäldenär'),
+    array('New debt', 'Ny gäldenär'),
     array('New property', 'Ny egenskap'),
     array('New row', 'Ny rad'),
     array('Off', 'Av'),

@@ -16,6 +16,7 @@
   # 2018-08-01 18:50:00 - adding balance
   # 2018-08-08 17:05:00 - adding balance
   # 2018-11-06 21:48:00 - renaming table and columns
+  # 2018-11-12 17:51:00 - separating debt and debtor
 
   require_once('include/functions.php');
 
@@ -61,10 +62,10 @@ Invoice reminder application
     remind
       To check for and send reminders
     errorreset
-      To reset all errors on all debtors with status error by setting
-      them back to active. (Does not change inactivated debtors)
+      To reset all errors on all debts with status error by setting
+      them back to active. (Does not change inactivated debts)
     remindreset
-      To reset all last reminded dates on all active debtors.
+      To reset all last reminded dates on all active debts.
     updatereference
       To update reference table for Riksbankens reference rate.
       (Needs to be done after 1 of january and after 1 of july)
@@ -131,16 +132,16 @@ Invoice reminder application
       cl(
         $link,
         VERBOSE_INFO,
-        'Resetting all errored debtors to active.'
+        'Resetting all errored debts to active.'
       );
 
       $sql = '
         UPDATE
           invoicereminder_debts
         SET
-          status="'.dbres($link, DEBTOR_STATUS_ACTIVE).'"
+          status="'.dbres($link, DEBT_STATUS_ACTIVE).'"
         WHERE
-          status="'.dbres($link, DEBTOR_STATUS_ERROR).'"';
+          status="'.dbres($link, DEBT_STATUS_ERROR).'"';
       cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
       $r = db_query($link, $sql);
       if ($r === false) {
@@ -165,17 +166,17 @@ Invoice reminder application
       cl(
         $link,
         VERBOSE_DEBUG,
-        'Searching for debtors to remind'
+        'Searching for debts to remind'
       );
 
-      # get all active debtors with active status and not reminded yet
+      # get all active debts with active status and not reminded yet
       $sql = '
         SELECT
           id, email_bcc
         FROM
           invoicereminder_debts
         WHERE
-          status='.dbres($link, DEBTOR_STATUS_ACTIVE).'
+          status='.dbres($link, DEBT_STATUS_ACTIVE).'
           AND
           last_reminder <= timestampadd(day, -reminder_days,now())
           AND (
@@ -186,29 +187,29 @@ Invoice reminder application
         ';
 
       cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
-      $debtors = db_query($link, $sql);
-      if ($debtors === false) {
+      $debts = db_query($link, $sql);
+      if ($debts === false) {
         cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
         die(1);
       }
 
-      # no debtor found?
-      if (!count($debtors)) {
+      # no debt found?
+      if (!count($debts)) {
         # log it
-        cl($link, VERBOSE_DEBUG, 'No unreminded debtors found');
+        cl($link, VERBOSE_DEBUG, 'No unreminded debts found');
         break;
       }
 
-      foreach ($debtors as $debtor) {
+      foreach ($debts as $debt) {
 
-        $mail = compose_mail($link, $debtor['id']);
+        $mail = compose_mail($link, $debt['id']);
 
         if (!$mail) {
           continue;
         }
 
         # log it
-        cl($link, VERBOSE_DEBUG, 'Sending mail to: '.$mail['to'], $debtor['id']);
+        cl($link, VERBOSE_DEBUG, 'Sending mail to: '.$mail['to'], $debt['id']);
 
         # try to send the mail
         if (!$config_opt['main']['dryrun']) {
@@ -224,11 +225,11 @@ Invoice reminder application
 
         # did mail fail?
         if ($mail_sent === false) {
-          # disable this debtor
-          set_debtor_status(
+          # disable this debt
+          set_debt_status(
             $link,
-            $debtor['id'],
-            DEBTOR_STATUS_ERROR
+            $debt['id'],
+            DEBT_STATUS_ERROR
           );
 
           # log it
@@ -237,16 +238,16 @@ Invoice reminder application
             VERBOSE_ERROR,
             'Failed sending mail to '.
               $mail['to'].' (bcc: '.
-              $debtor['email_bcc'].')',
-            $debtor['id']
+              $debt['email_bcc'].')',
+            $debt['id']
           );
 
-          # take next debtor
+          # take next debt
           continue;
         }
 
         if (!$config_opt['main']['dryrun']) {
-          # update last reminder on this debtor
+          # update last reminder on this debt
           $sql = '
             UPDATE
               invoicereminder_debts
@@ -255,7 +256,7 @@ Invoice reminder application
               last_reminder="'.dbres($link, date('Y-m-d H:i:s')).'",
               mails_sent=mails_sent+1
             WHERE
-              id="'.dbres($link, $debtor['id']).'"
+              id="'.dbres($link, $debt['id']).'"
             ';
           cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
           $r = db_query($link, $sql);
@@ -266,17 +267,17 @@ Invoice reminder application
         }
 
         # log that mail has been sent
-        cl($link, VERBOSE_INFO, 'Mail sent: '.$mail['to'], $debtor['id']);
+        cl($link, VERBOSE_INFO, 'Mail sent: '.$mail['to'], $debt['id']);
       }
 
       die(0);
 
-    case 'remindreset': # to reset last reminded dates on active debtors
+    case 'remindreset': # to reset last reminded dates on active debts
       # log it
       cl(
         $link,
         VERBOSE_INFO,
-        'Resetting all active debtor reminder dates.'
+        'Resetting all active debt reminder dates.'
       );
 
       $sql = '
@@ -285,7 +286,7 @@ Invoice reminder application
         SET
           last_reminder="'.dbres($link, '1970-01-01 00:00:00').'"
         WHERE
-          status="'.dbres($link, DEBTOR_STATUS_ACTIVE).'"';
+          status="'.dbres($link, DEBT_STATUS_ACTIVE).'"';
       cl($link, VERBOSE_DEBUG_DEEP, 'SQL: '.$sql);
       $r = db_query($link, $sql);
       if ($r === false) {
