@@ -18,6 +18,7 @@
   # 2018-11-06 21:48:00 - renaming table and columns
   # 2018-11-12 17:51:00 - separating debt and debtor
   # 2018-11-12 19:27:00 - implementing contacts
+  # 2018-11-13 18:14:00 - adding missing email
 
   require_once('include/functions.php');
 
@@ -173,7 +174,9 @@ Invoice reminder application
       # get all active debts with active status and not reminded yet
       $sql = '
         SELECT
-          debts.id, debtors.email_bcc
+          debts.id,
+          debtors.email,
+          debtors.email_bcc
         FROM
           invoicereminder_debts AS debts
           LEFT JOIN

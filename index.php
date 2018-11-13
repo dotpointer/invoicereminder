@@ -21,6 +21,7 @@
   # 2018-11-06 21:48:00 - renaming table and columns
   # 2018-11-12 17:51:00 - separating debt and debtor
   # 2018-11-12 19:27:00 - implementing contacts
+  # 2018-11-13 18:14:00 - replacing columns, adding missing phone number
 
   require_once('include/functions.php');
 
@@ -410,11 +411,37 @@
         # find the debt
         $sql = '
           SELECT
-            *
+            debtors.address AS address_debtor,
+            debtors.city AS city_debtor,
+            debtors.email AS email_debtor,
+            debtors.email_bcc AS email_bcc_debtor,
+            debtors.name AS name_debtor,
+            debtors.orgno AS orgno_debtor,
+            debtors.phonenumber AS phonenumber_debtor,
+            debtors.zipcode AS zipcode_debtor,
+            debts.amount,
+            debts.collectioncost,
+            debts.day_of_month,
+            debts.duedate,
+            debts.id,
+            debts.id_contacts_creditor AS id_creditor,
+            debts.id_contacts_debtor AS id_debtor,
+            debts.invoicedate,
+            debts.invoicenumber,
+            debts.last_reminder,
+            debts.mails_sent,
+            debts.percentage,
+            debts.reminder_days,
+            debts.remindercost,
+            debts.status,
+            debts.template
           FROM
-            invoicereminder_debts
+            invoicereminder_debts AS debts
+              LEFT JOIN
+                invoicereminder_contacts AS debtors
+                ON debts.id_contacts_debtor = debtors.id
           WHERE
-            id="'.dbres($link, $id_debts).'"
+            debts.id="'.dbres($link, $id_debts).'"
           ';
         $debts = db_query($link, $sql);
         if ($debts === false) {
@@ -701,11 +728,37 @@
         # find the item
         $sql = '
           SELECT
-            *
+            debtors.address AS address_debtor,
+            debtors.city AS city_debtor,
+            debtors.email AS email_debtor,
+            debtors.email_bcc AS email_bcc_debtor,
+            debtors.name AS name_debtor,
+            debtors.orgno AS orgno_debtor,
+            debtors.phonenumber AS phonenumber_debtor,
+            debtors.zipcode AS zipcode_debtor,
+            debts.amount,
+            debts.collectioncost,
+            debts.day_of_month,
+            debts.duedate,
+            debts.id,
+            debts.id_contacts_creditor AS id_creditor,
+            debts.id_contacts_debtor AS id_debtor,
+            debts.invoicedate,
+            debts.invoicenumber,
+            debts.last_reminder,
+            debts.mails_sent,
+            debts.percentage,
+            debts.reminder_days,
+            debts.remindercost,
+            debts.status,
+            debts.template
           FROM
-            invoicereminder_debts
+            invoicereminder_debts AS debts
+              LEFT JOIN
+                invoicereminder_contacts AS debtors
+                ON debts.id_contacts_debtor = debtors.id
           WHERE
-            id="'.dbres($link, $id_debts).'"
+            debts.id="'.dbres($link, $id_debts).'"
           ';
         $debts = db_query($link, $sql);
         if ($debts === false) {
@@ -911,7 +964,7 @@
     case 'balance':
 ?>
   <h2><?php echo t('Balance'); ?></h2>
-  <p><?php echo t('Debtor'); ?>: <?php echo $debt['name']?> (#<?php echo $debt['id'] ?>).
+  <p><?php echo t('Debtor'); ?>: <?php echo $debt['name_debtor']?> (#<?php echo $debt['id_debtor']; ?>).
   <p>
     <?php echo t('This page shows balance changes.'); ?>
   </p>
@@ -971,6 +1024,7 @@
       <th><?php echo t('City'); ?></th>
       <th><?php echo t('Organisation number'); ?></th>
       <th><?php echo t('E-mail'); ?></th>
+      <th><?php echo t('Phone number'); ?></th>
       <th><?php echo t('Manage'); ?></th>
     </tr>
 <?php
@@ -1264,7 +1318,7 @@
     case 'history':
 ?>
   <h2><?php echo t('Debt history'); ?></h2>
-  <p><?php echo t('Debtor'); ?>: <?php echo $debt['name']?> (#<?php echo $debt['id']; ?>).
+   <p><?php echo t('Debtor'); ?>: <?php echo $debt['name_debtor']?> (#<?php echo $debt['id_debtor']; ?>).
   <p>
     <?php echo t('This page shows debt history.'); ?>
   </p>
