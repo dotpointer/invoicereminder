@@ -7,6 +7,7 @@
 # 2018-08-08 20:30:00 - adding balance
 # 2018-11-06 20:35:00 - adding contacts
 # 2018-11-12 17:51:00 - separating debt and debtor
+# 2018-11-16 17:06:00 - adding default creditor/debtor filter
 
 # store this into translations
 $translations['languages'][] = array(
@@ -14,6 +15,7 @@ $translations['languages'][] = array(
     'sv-SE'
   ),
   'content' => array(
+    array('All', 'Alla'),
     array('Accrued interest', 'Upplupen ränta'),
     array('Accrued', 'Upplupen'),
     array('Active', 'Aktiv'),
@@ -28,6 +30,7 @@ $translations['languages'][] = array(
     array('Cost', 'Kostnad'),
     array('Cost, change', 'Kostnad, förändring'),
     array('Costs', 'Kostnader'),
+    array('Creditor', 'Borgenär'),
     array('Date', 'Datum'),
     array('Day in month, earliest', 'Dag i månaden tidigast'),
     array('Day-#', 'Dag-#'),

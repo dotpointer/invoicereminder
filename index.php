@@ -22,6 +22,7 @@
   # 2018-11-12 17:51:00 - separating debt and debtor
   # 2018-11-12 19:27:00 - implementing contacts
   # 2018-11-13 18:14:00 - replacing columns, adding missing phone number
+  # 2018-11-16 17:06:00 - adding default creditor/debtor filter
 
   require_once('include/functions.php');
 
@@ -364,8 +365,14 @@
       # get debts
       $sql = '
         SELECT
+          creditors.orgno AS orgno_creditor,
+          creditors.address AS address_creditor,
+          creditors.city AS city_creditor,
+          creditors.email AS email_creditor,
+          creditors.email_bcc AS email_bcc_creditor,
           creditors.name AS name_creditor,
           creditors.phonenumber AS phonenumber_creditor,
+          creditors.zipcode AS zipcode_creditor,
           debtors.address AS address_debtor,
           debtors.city AS city_debtor,
           debtors.email AS email_debtor,
@@ -397,12 +404,67 @@
           LEFT JOIN
             invoicereminder_contacts AS debtors ON debts.id_contacts_debtor = debtors.id
         ';
+
+      if ($id_contacts_creditor !== false || $id_contacts_debtor !== false) {
+
+        $where = array();
+
+        if ($id_contacts_creditor !== false) {
+          $where[] = 'debts.id_contacts_creditor = '.dbres($link, $id_contacts_creditor);
+        }
+
+        if ($id_contacts_debtor !== false) {
+          $where[] = 'debts.id_contacts_debtor = '.dbres($link, $id_contacts_debtor);
+        }
+
+        $sql .= 'WHERE '.implode(' AND ', $where);
+      }
+
       $debts = db_query($link, $sql);
 
       foreach ($debts as $k => $debt) {
         $debts[$k]['balance_history'] = balance_history($link, $debt['id']);
       }
 
+      # get contacts that are creditors
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_contacts AS c
+        WHERE EXISTS
+          (
+            SELECT
+              1
+            FROM
+              invoicereminder_debts
+            WHERE
+              id_contacts_creditor = c.id
+          )
+        ORDER BY
+          name, company
+        ';
+      $creditors = db_query($link, $sql);
+
+      # get contacts that are debtors
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_contacts AS c
+        WHERE EXISTS
+          (
+            SELECT
+              1
+            FROM
+              invoicereminder_debts
+            WHERE
+              id_contacts_debtor = c.id
+          )
+        ORDER BY
+          name, company
+        ';
+      $debtors = db_query($link, $sql);
       break;
 
     case 'balance':
@@ -849,6 +911,12 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
   <link rel="stylesheet" href="include/style.css" />
+  <script type="text/javascript" src="include/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript">
+    const action = '<?php echo $action ?>',
+          view = '<?php echo $view ?>';
+  </script>
+  <script type="text/javascript" src="include/load.php?nocache=<?php echo time();?>"></script>
   <title><?php echo t('Invoice reminder'); ?></title>
 </head>
 <body>
@@ -870,8 +938,9 @@
   <table border="1">
     <tr>
       <th>#</th>
+      <th><?php echo t('Creditor'); ?></th>
+      <th><?php echo t('Debtor'); ?></th>
       <th><?php echo t('Invoice-#'); ?></th>
-      <th><?php echo t('Name'); ?></th>
       <th><?php echo t('Amount'); ?></th>
       <th><?php echo t('Interest'); ?> (%)<br><?php echo t('Accrued'); ?></th>
       <th><?php echo t('Costs'); ?></th>
@@ -885,6 +954,62 @@
       <th><?php echo t('Template'); ?></th>
       <th><?php echo t('Manage'); ?></th>
     </tr>
+    <tr>
+      <th></th>
+      <th>
+        <select id="select_creditor">
+          <option value=""><?php echo t('All') ?></option>
+          <?php foreach ($creditors as $creditor) { ?>
+          <option value="<?php echo $creditor['id']; ?>"<?php echo $creditor['id'] === $id_contacts_creditor ? 'selected="selected"' : '' ?>>
+          <?php
+            $names = array();
+            if (strlen($creditor['name'])) {
+              $names[] = $creditor['name'];
+            }
+
+            if (strlen($creditor['company'])) {
+              $names[] = $creditor['company'];
+            }
+            echo implode(', ', $names);
+            ?>
+          </option>
+          <?php } ?>
+        </select>
+      </th>
+      <th>
+        <select id="select_debtor">
+          <option value=""><?php echo t('All') ?></option>
+          <?php foreach ($debtors as $debtor) { ?>
+          <option value="<?php echo $debtor['id']; ?>"<?php echo $debtor['id'] === $id_contacts_debtor ? 'selected="selected"' : '' ?>>
+          <?php
+            $names = array();
+            if (strlen($debtor['name'])) {
+              $names[] = $debtor['name'];
+            }
+
+            if (strlen($debtor['company'])) {
+              $names[] = $debtor['company'];
+            }
+            echo implode(', ', $names);
+            ?>
+          </option>
+          <?php } ?>
+        </select>
+      </th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
 <?php
       # walk debts
       foreach ($debts as $debt) {
@@ -892,15 +1017,21 @@
 ?>
     <tr>
       <td><?php echo $debt['id']; ?></td>
-      <td><?php echo $debt['invoicenumber']; ?></td>
+      <td>
+        <?php echo $debt['name_creditor']; ?><br>
+        <?php echo $debt['address_creditor']; ?><br>
+        <?php echo $debt['zipcode_creditor']; ?> <?php echo $debt['city_creditor']; ?><br>
+        <?php echo $debt['orgno_creditor']; ?><br>
+        <?php echo $debt['phonenumber_creditor']; ?>
+      </td>
       <td>
         <?php echo $debt['name_debtor']; ?><br>
         <?php echo $debt['address_debtor']; ?><br>
         <?php echo $debt['zipcode_debtor']; ?> <?php echo $debt['city_debtor']; ?><br>
         <?php echo $debt['orgno_debtor']; ?><br>
         <?php echo $debt['phonenumber_debtor']; ?>
-
       </td>
+      <td><?php echo $debt['invoicenumber']; ?></td>
       <td class="amount">
         <?php echo money($bend['amount_accrued']); ?> kr
       </td>

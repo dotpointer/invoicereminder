@@ -982,6 +982,10 @@
     }
   }
 
+  function is_logged_in() {
+    return true;
+  }
+
   function money($amount) {
     return number_format($amount, 2, ',', '');
   }
