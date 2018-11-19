@@ -8,6 +8,7 @@
 # 2018-11-06 20:35:00 - adding contacts
 # 2018-11-12 17:51:00 - separating debt and debtor
 # 2018-11-16 17:06:00 - adding default creditor/debtor filter
+# 2018-11-19 19:27:00 - adding charts
 
 # store this into translations
 $translations['languages'][] = array(
@@ -15,12 +16,13 @@ $translations['languages'][] = array(
     'sv-SE'
   ),
   'content' => array(
-    array('All', 'Alla'),
     array('Accrued interest', 'Upplupen ränta'),
     array('Accrued', 'Upplupen'),
     array('Active', 'Aktiv'),
     array('Active','Aktiv'),
     array('Address', 'Adress'),
+    array('All', 'Alla'),
+    array('Amount', 'Belopp'),
     array('Balance', 'Balans'),
     array('Changes', 'Förändringar'),
     array('City', 'Postort'),
@@ -57,6 +59,7 @@ $translations['languages'][] = array(
     array('Fill in eventual payment, positive amount.', 'Fyll i eventuell betalning, positivt belopp.'),
     array('History', 'Historik'),
     array('Inactive', 'Inaktiv'),
+    array('Interest per day', 'Dagsränta'),
     array('Interest percentage', 'Ränteprocent'),
     array('Interest', 'Ränta'),
     array('Interval', 'Intervall'),
@@ -82,6 +85,7 @@ $translations['languages'][] = array(
     array('Payment, change', 'Betalning, förändring'),
     array('Payments', 'Betalningar'),
     array('Postal code', 'Postnummer'),
+    array('Principal amount', 'Kapitalbelopp'),
     array('Properties', 'Egenskaper'),
     array('Property', 'Egenskap'),
     array('Rate', 'Ränta'),
@@ -99,6 +103,8 @@ $translations['languages'][] = array(
     array('This page shows properties that affect templates.', 'Denna sida visar egenskaper som påverkar mallar.'),
     array('This page shows the national reference rate.', 'Denna sida visar den nationella referensräntan.'),
     array('This page shows when e-mails has been sent to recipients.', 'Denna sida visar när mail skickats till mottagare.'),
+    array('Total amount left to pay'),
+    array('Total amount', 'Totalbelopp'),
     array('Total', 'Totalt'),
     array('Type', 'Typ'),
     array('Used template is', 'Använd mall är'),

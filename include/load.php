@@ -5,13 +5,18 @@ require_once('functions.php');
 
 # changelog
 # 2018-11-16 17:06:00 - source from autoqueuer, adding default creditor/debtor filter
+# 2018-11-19 19:26:00 - adding charts
 
+start_translations();
 ?>
 /*jslint white: true, this: true, browser: true, long: true */
-/*global window,$,jQuery,view*/
-let	ir = {
+/*global clientpumptypes,window,$,jQuery,toggler,Highcharts,files_queued_stats,
+view,types,methods*/
+let ir = {
+  msg: <?php echo json_encode(get_translation_texts()); ?>,
   view: ""
 };
+
 
 (function() {
   "use strict";
@@ -20,7 +25,32 @@ let	ir = {
   $(window.document).ready(() => {
 
     ir.view = view;
+   // to translate texts
+    ir.t = function (s) {
+      let found = false;
+      // are the translation texts available?
+      if (typeof ir.msg !== "object") {
+        return s;
+      }
 
+      // walk the translation texts
+      Object.keys(ir.msg).forEach(function (i) {
+        if (
+          found === false &&
+          ir.msg[0] !== undefined &&
+          ir.msg[1] !== undefined &&
+          ir.msg[i][0] === s
+        ) {
+          found = ir.msg[i][1];
+        }
+      });
+
+      if (found !== false) {
+        return found;
+      }
+
+      return s;
+    };
       // find out what view that was requested
     switch (view) {
 <?php if (is_logged_in()) { ?>
@@ -37,6 +67,120 @@ let	ir = {
           window.location.href = './?' + params.join('&');
         });
         break;
+      case 'history':
+
+        Highcharts.chart('charttotal', {
+          xAxis: {
+            categories: slimmed_history.map(day => day.d)
+          },
+          yAxis: {
+            title: {
+              text: ir.t('Amount')
+            }
+          },
+          plotOptions: {
+            series: {
+                allowPointSelect: true
+            }
+          },
+          series: [{
+              data: slimmed_history.map(day => day.t),
+              name: ir.t('Day')
+          }],
+          title: {
+            text: ir.t('Total amount')
+          },
+          tooltip: {
+            formatter: function() {
+              return this.x + ': <b>' + this.y + ' kr</b>';
+            }
+          }
+        });
+
+        Highcharts.chart('chartaccrued', {
+          xAxis: {
+            categories: slimmed_history.map(day => day.d)
+          },
+          yAxis: {
+            title: {
+              text: ir.t('Amount')
+            }
+          },
+          plotOptions: {
+            series: {
+                allowPointSelect: true
+            }
+          },
+          series: [{
+              data: slimmed_history.map(day => day.a),
+              name: ir.t('Day')
+          }],
+          title: {
+            text: ir.t('Accrued interest')
+          },
+          tooltip: {
+            formatter: function() {
+              return this.x + ': <b>' + this.y + ' kr</b>';
+            }
+          }
+        });
+
+        Highcharts.chart('chartprincipal', {
+          xAxis: {
+            categories: slimmed_history.map(day => day.d)
+          },
+          yAxis: {
+            title: {
+              text: ir.t('Amount')
+            }
+          },
+          plotOptions: {
+            series: {
+                allowPointSelect: true
+            }
+          },
+          series: [{
+              data: slimmed_history.map(day => day.p),
+              name: ir.t('Day')
+          }],
+          title: {
+            text: ir.t('Principal amount')
+          },
+          tooltip: {
+            formatter: function() {
+              return this.x + ': <b>' + this.y + ' kr</b>';
+            }
+          }
+        });
+
+        Highcharts.chart('chartinterestperday', {
+          xAxis: {
+              categories: slimmed_history.map(day => day.d)
+          },
+          yAxis: {
+            title: {
+              text: ir.t('Amount')
+            }
+          },
+          plotOptions: {
+              series: {
+                  allowPointSelect: true
+              }
+          },
+          series: [{
+              data: slimmed_history.map(day => day.i),
+              name: ir.t('Day')
+          }],
+          title: {
+            text: ir.t('Interest per day')
+          },
+        tooltip: {
+          formatter: function() {
+            return this.x + ': <b>' + this.y + ' kr</b>';
+          }
+        }
+      });
+      break;
 <?php } ?>
     }
   });

@@ -23,6 +23,7 @@
   # 2018-11-12 19:27:00 - implementing contacts
   # 2018-11-13 18:14:00 - replacing columns, adding missing phone number
   # 2018-11-16 17:06:00 - adding default creditor/debtor filter
+  # 2018-11-19 19:28:00 - adding charts, displaying history changes by default instead of all history
 
   require_once('include/functions.php');
 
@@ -54,7 +55,7 @@
   $message = isset($_REQUEST['message']) ? $_REQUEST['message'] : false;
   $name = isset($_REQUEST['name']) ? $_REQUEST['name'] : false;
   $company = isset($_REQUEST['company']) ? $_REQUEST['company'] : false;
-  $onlychanges = isset($_REQUEST['onlychanges']) ? $_REQUEST['onlychanges'] : false;
+  $allchanges = isset($_REQUEST['allchanges']) ? $_REQUEST['allchanges'] : false;
   $orgno = isset($_REQUEST['orgno']) ? $_REQUEST['orgno'] : false;
   $payment = isset($_REQUEST['payment']) ? $_REQUEST['payment'] : false;
   $percentage = isset($_REQUEST['percentage']) ? $_REQUEST['percentage'] : false;
@@ -912,9 +913,42 @@
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
   <link rel="stylesheet" href="include/style.css" />
   <script type="text/javascript" src="include/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript "src="include/highcharts.js"></script>
   <script type="text/javascript">
     const action = '<?php echo $action ?>',
           view = '<?php echo $view ?>';
+<?php
+  switch ($view) {
+    case 'history':
+      $slimmed_history = array();
+      foreach ($balance_history['history'] as $k => $row) {
+
+      if ((int)$allchanges === 0) {
+        # is this a change row or last row
+        if (
+          !$row['changesthisday'] &&
+          $k !== 0 &&
+          $k !== count($balance_history['history']) - 1
+        ) {
+          continue;
+        }
+      }
+
+      $slimmed_history[] = array(
+          'a' => round((float)$row['interest_accrued'], 2),
+          'd' => $row['date'],
+          'i' => round((float)$row['interest_this_day'], 2),
+          'p' => round((float)$row['amount_accrued'], 2),
+          't' => round((float)$row['total'], 2)
+        );
+      }
+
+?>
+  const slimmed_history = <?php echo json_encode($slimmed_history); ?>;
+<?php
+  }
+
+?>
   </script>
   <script type="text/javascript" src="include/load.php?nocache=<?php echo time();?>"></script>
   <title><?php echo t('Invoice reminder'); ?></title>
@@ -1455,12 +1489,20 @@
   </p>
   <p>
     Visa:
-    <a href="?view=history&amp;id_debts=<?=$id_debts?>&amp;onlychanges=1"><?php echo t('Changes'); ?></a>
+    <a href="?view=history&amp;id_debts=<?=$id_debts?>&amp;allchanges=0"><?php echo t('Changes'); ?></a>
     /
-    <a href="?view=history&amp;id_debts=<?=$id_debts?>&amp;onlychanges=0"><?php echo t('Everything'); ?></a>
+    <a href="?view=history&amp;id_debts=<?=$id_debts?>&amp;allchanges=1"><?php echo t('Everything'); ?></a>
     /
     <a href="?view=balance&amp;id_debts=<?=$id_debts?>"><?php echo t('Balance'); ?></a>
   </p>
+
+  <div class="charts">
+    <div id="charttotal" class="chart"></div>
+    <div id="chartprincipal" class="chart"></div>
+    <div id="chartaccrued" class="chart"></div>
+    <div id="chartinterestperday" class="chart"></div>
+    <div class="clear_both"></div>
+  </div>
   <table border="1">
     <tr>
       <th><?php echo t('Day-#'); ?></th>
@@ -1479,7 +1521,7 @@
       # walk history
       foreach ($balance_history['history'] as $k => $row) {
 
-        if ($onlychanges == '1') {
+        if ($allchanges == '0') {
           # is this a change row or last row
           if (
             !$row['changesthisday'] &&

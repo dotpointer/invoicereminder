@@ -67,3 +67,12 @@ ul.menu {
 ul.menu li {
   display: inline-block;
 }
+
+.charts .chart {
+  float: left;
+  width: 400px;
+}
+
+.clear_both {
+  clear: both;
+}
