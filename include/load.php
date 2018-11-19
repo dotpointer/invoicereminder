@@ -6,6 +6,7 @@ require_once('functions.php');
 # changelog
 # 2018-11-16 17:06:00 - source from autoqueuer, adding default creditor/debtor filter
 # 2018-11-19 19:26:00 - adding charts
+# 2018-11-19 19:47:00 - adjusting chart tool tips
 
 start_translations();
 ?>
@@ -25,7 +26,7 @@ let ir = {
   $(window.document).ready(() => {
 
     ir.view = view;
-   // to translate texts
+    // to translate texts
     ir.t = function (s) {
       let found = false;
       // are the translation texts available?
@@ -85,14 +86,14 @@ let ir = {
           },
           series: [{
               data: slimmed_history.map(day => day.t),
-              name: ir.t('Day')
+              name: ir.t('Date')
           }],
           title: {
             text: ir.t('Total amount')
           },
           tooltip: {
             formatter: function() {
-              return this.x + ': <b>' + this.y + ' kr</b>';
+              return this.x + ': <b>' + Highcharts.numberFormat(this.y, 2, ',') + ' kr</b>';
             }
           }
         });
@@ -113,14 +114,14 @@ let ir = {
           },
           series: [{
               data: slimmed_history.map(day => day.a),
-              name: ir.t('Day')
+              name: ir.t('Date')
           }],
           title: {
             text: ir.t('Accrued interest')
           },
           tooltip: {
             formatter: function() {
-              return this.x + ': <b>' + this.y + ' kr</b>';
+              return this.x + ': <b>' + Highcharts.numberFormat(this.y, 2, ',') + ' kr</b>';
             }
           }
         });
@@ -141,14 +142,14 @@ let ir = {
           },
           series: [{
               data: slimmed_history.map(day => day.p),
-              name: ir.t('Day')
+              name: ir.t('Date')
           }],
           title: {
             text: ir.t('Principal amount')
           },
           tooltip: {
             formatter: function() {
-              return this.x + ': <b>' + this.y + ' kr</b>';
+              return this.x + ': <b>' + Highcharts.numberFormat(this.y, 2, ',') + ' kr</b>';
             }
           }
         });
@@ -169,14 +170,14 @@ let ir = {
           },
           series: [{
               data: slimmed_history.map(day => day.i),
-              name: ir.t('Day')
+              name: ir.t('Date')
           }],
           title: {
             text: ir.t('Interest per day')
           },
         tooltip: {
           formatter: function() {
-            return this.x + ': <b>' + this.y + ' kr</b>';
+            return this.x + ': <b>' + Highcharts.numberFormat(this.y, 2, ',') + ' kr</b>';
           }
         }
       });
