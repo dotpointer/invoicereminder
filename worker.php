@@ -19,6 +19,7 @@
   # 2018-11-12 17:51:00 - separating debt and debtor
   # 2018-11-12 19:27:00 - implementing contacts
   # 2018-11-13 18:14:00 - adding missing email
+  # 2018-11-26 19:13:00 - bugfix, reminders were queried correctly
 
   require_once('include/functions.php');
 
@@ -184,7 +185,7 @@ Invoice reminder application
         WHERE
           debts.status='.dbres($link, DEBT_STATUS_ACTIVE).'
           AND
-          debts.last_reminder <= timestampadd(debts.day, -debts.reminder_days,now())
+          debts.last_reminder <= timestampadd(day, -debts.reminder_days,now())
           AND (
             debts.day_of_month = 0
             OR
