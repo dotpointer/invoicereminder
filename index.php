@@ -24,10 +24,11 @@
   # 2018-11-13 18:14:00 - replacing columns, adding missing phone number
   # 2018-11-16 17:06:00 - adding default creditor/debtor filter
   # 2018-11-19 19:28:00 - adding charts, displaying history changes by default instead of all history
+  # 2018-12-20 18:49:00 - moving translation to Base translate
 
   require_once('include/functions.php');
 
-  start_translations();
+  start_translations(dirname(__FILE__).'/include/locales/');
 
   # parameters
 

@@ -7,8 +7,9 @@ require_once('functions.php');
 # 2018-11-16 17:06:00 - source from autoqueuer, adding default creditor/debtor filter
 # 2018-11-19 19:26:00 - adding charts
 # 2018-11-19 19:47:00 - adjusting chart tool tips
+# 2018-12-20 18:49:00 - moving translation to Base translate
 
-start_translations();
+start_translations(dirname(__FILE__).'/locales/');
 ?>
 /*jslint white: true, this: true, browser: true, long: true */
 /*global clientpumptypes,window,$,jQuery,toggler,Highcharts,files_queued_stats,
