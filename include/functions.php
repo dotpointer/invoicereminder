@@ -24,6 +24,7 @@
   # 2018-11-12 17:51:00 - separating debt and debtor
   # 2018-11-12 19:27:00 - implementing contacts
   # 2018-12-20 18:49:00 - moving translation to Base translate
+  # 2018-12-25 03:18:00 - adding SOAP version of reference rate fetcher
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
@@ -916,6 +917,88 @@
   }
 
   function get_reference_rate($link) {
+
+/*
+    # 2018-12-25 03:15 - SOAP version, for fallback
+    # does however only supply weekday dates
+
+    $client = new SoapClient("https://swea.riksbank.se/sweaWS/wsdl/sweaWS_ssl.wsdl");
+
+    $params = array(
+      'searchRequestParameters' => array(
+        'aggregateMethod' => 'D',
+        'avg' => false,
+        'datefrom' => '2002-07-01',
+        'dateto' => date('Y-m-d'),
+        'languageid' => 'sv',
+        'max' => false,
+        'min' => false,
+        'searchGroupSeries' => array(
+          array(
+            'groupid' => 3,
+            'seriesid' => 'SECBREFEFF'
+          )
+        ),
+        'ultimo' => false
+      )
+    );
+
+    $response = $client->__soapCall("getInterestAndExchangeRates", array($params));
+
+    # file_put_contents('loader.txt', json_encode($response));
+    # $response = file_get_contents('loader.txt');
+    # $response = json_decode($response, true);
+    # $response = json_decode(json_encode($response), true);
+
+    $latestrate = false;
+    foreach ($response['return']['groups']['series']['resultrows'] as $k => $row) {
+      # echo $row['date']."\t".$row['value']."\n";
+
+      if ($row['value'] === $latestrate) {
+        continue;
+      }
+      $latestrate = $row['value'];
+      $date = $row['date'];
+      $rate = (float)str_replace(',', '.', $row['value']) * 0.01;
+      # debug
+      # echo ($k + 1).': "'.$date.'" "'.$rate.'"'."\n";
+
+      $sql = '
+        SELECT
+          *
+        FROM
+          invoicereminder_riksbank_reference_rate
+        WHERE
+          updated="'.dbres($link, $date).'"
+        AND
+          CAST(rate AS CHAR) = "'.dbres($link, $rate).'"
+        ';
+      # echo $sql."\n";
+      $r = db_query($link, $sql);
+      if ($r === false) {
+        cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+        die(1);
+      }
+
+      if (!count($r)) {
+        echo $date.' -> '.$rate."\n";
+        $sql = '
+          INSERT INTO invoicereminder_riksbank_reference_rate (
+            updated, rate
+          ) VALUES(
+            "'.dbres($link, $date).'",
+            "'.dbres($link, $rate).'"
+          )
+        '."\n";
+        # echo $sql."\n";
+        $r = db_query($link, $sql);
+        if ($r === false) {
+          cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+          die(1);
+        }
+      }
+    }
+*/
 
     # v1 - before 2018-02-13
     # $contents = file_get_contents('http://www.riksbank.se/sv/Rantor-och-valutakurser/Referensranta-och-tidigare-diskonto-tabell/');
