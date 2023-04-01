@@ -25,6 +25,7 @@
   # 2018-11-12 19:27:00 - implementing contacts
   # 2018-12-20 18:49:00 - moving translation to Base translate
   # 2018-12-25 03:18:00 - adding SOAP version of reference rate fetcher
+  # 2023-04-01 18:26:00 - adding reference rate update check
 
   define('SITE_SHORTNAME', 'invoicereminder');
 
@@ -52,7 +53,8 @@
   $available_properties = array(
     '$BANK-ACCOUNT-CLEARING-NUMBER-CREDITOR$',
     '$BANK-ACCOUNT-NUMBER-CREDITOR$',
-    '$BANK-NAME-CREDITOR$'
+    '$BANK-NAME-CREDITOR$',
+    '$CELLPHONE-NUMBER-CREDITOR$'
   );
 
   require_once('base3.php');
@@ -1065,9 +1067,43 @@
         }
       }
     }
+    return true;
   }
 
   function is_logged_in() {
+    return true;
+  }
+
+  function is_reference_rate_updated($link) {
+    $sql = 'SELECT updated FROM invoicereminder_riksbank_reference_rate ORDER BY updated DESC LIMIT 1';
+    $r = db_query($link, $sql);
+    if ($r === false) {
+      cl($link, VERBOSE_ERROR, db_error($link).' SQL: '.$sql);
+      die(1);
+    }
+    if (!count($r)) {
+      return false;
+    }
+    $updated = strtotime($r[0]['updated']);
+    $now = time();
+    # from 01-01
+    if ($now >= mktime(0, 0, 0, 1, 1) &&
+      # before 07-01
+      $now < mktime(0, 0, 0, 7, 1) &&
+      # updated before 01-01
+      $updated < mktime(0, 0, 0, 1, 1)
+    ) {
+      return false;
+    }
+    # from 07-01
+    if ($now >= mktime(0, 0, 0, 7, 1) &&
+      # before 12-31
+      $now <= mktime(0, 0, 0, 12, 31) &&
+      # updated before 07-01
+      $updated < mktime(0, 0, 0, 7, 1)
+    ) {
+      return false;
+    }
     return true;
   }
 

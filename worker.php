@@ -20,6 +20,7 @@
   # 2018-11-12 19:27:00 - implementing contacts
   # 2018-11-13 18:14:00 - adding missing email
   # 2018-11-26 19:13:00 - bugfix, reminders were queried correctly
+  # 2023-04-01 18:26:00 - adding reference rate update check
 
   require_once('include/functions.php');
 
@@ -154,6 +155,23 @@ Invoice reminder application
       die(0);
 
     case 'remind':
+
+      if (!is_reference_rate_updated($link)) {
+        cl(
+          $link,
+          VERBOSE_DEBUG,
+          'Updating reference table for Riksbanken reference rate.'
+        );
+        get_reference_rate($link);
+        if (!is_reference_rate_updated($link)) {
+          cl(
+            $link,
+            VERBOSE_ERROR,
+            'Riksbanken reference rate could not be updated, will not remind'
+          );
+          die(1);
+        }
+      }
 
       # get reference rate, descending
       $sql = '
@@ -303,6 +321,14 @@ Invoice reminder application
       die(0);
 
     case 'updatereference':
+      if (is_reference_rate_updated($link)) {
+        cl(
+          $link,
+          VERBOSE_DEBUG,
+          'Riksbanken reference rate is already up to date.'
+        );
+        break;
+      }
       cl(
         $link,
         VERBOSE_DEBUG,

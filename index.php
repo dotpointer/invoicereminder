@@ -748,7 +748,6 @@
         $property = false;
       }
 
-      # find the item
       $sql = '
         SELECT
           *
@@ -762,6 +761,7 @@
       }
 
       # walk available properties
+      $tmp = array();
       foreach ($available_properties as $available_property) {
         $found = false;
 
